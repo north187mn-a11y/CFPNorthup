@@ -1,0 +1,3 @@
+import { NextResponse } from 'next/server';
+import { requireCommissioner } from '@/lib/auth';
+export async function POST(req:Request){try{const {supabase,user}=await requireCommissioner();const body=await req.json();const {data:league}=await supabase.from('leagues').select('id').eq('commissioner_id',user.id).eq('season',2026).single();if(!league)throw new Error('Commissioner league not found.');const {data,error}=await supabase.from('weeks').insert({league_id:league.id,week_number:body.week_number,week_type:'REGULAR',status:'DRAFT',pick_deadline:body.pick_deadline||null}).select('id').single();if(error)throw error;return NextResponse.json(data);}catch(e){return NextResponse.json({error:e instanceof Error?e.message:'Unknown error'},{status:400});}}
