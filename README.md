@@ -5,7 +5,7 @@ First MVP scaffold for the college football prediction/elimination league.
 ## League rules represented
 - 15 games selected each regular week.
 - Correct favorite pick: 1 point.
-- Correct underdog pick: `1 + 0.2 * absolute locked spread`.
+- Correct underdog pick: `1 + 0.2 * absolute locked spread
 - Incorrect pick: 0.
 - The spread stored on `games` is the authoritative locked spread.
 - ESPN event IDs are stored separately and used only to determine game results.
