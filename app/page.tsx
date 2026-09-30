@@ -6,7 +6,7 @@ export default async function Home() {
   const { data: profile } = await supabase.from('profiles').select('full_name, role').eq('id', user.id).single();
   return <main className="container">
     <h1>Welcome{profile?.full_name ? `, ${profile.full_name}` : ''}</h1>
-    <p className="muted">Northup College Football Picks — 2026 season.</p>
+    <p className="muted">College Football Survivor — 2026 season.</p>
     <div className="grid grid-2" style={{marginTop:20}}>
       <Link href={profile?.role === 'COMMISSIONER' ? '/commissioner' : '/dashboard'} className="card link-card">
         <h2>{profile?.role === 'COMMISSIONER' ? 'Commissioner Dashboard' : 'Player Dashboard'}</h2>
