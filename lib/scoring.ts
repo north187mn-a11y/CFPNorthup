@@ -1,0 +1,3 @@
+export type GameResult={winner:'home'|'away'|null;homeSpread:number;awaySpread:number};
+export function scorePick(selected:'home'|'away',result:GameResult):number{if(!result.winner||selected!==result.winner)return 0;const selectedSpread=selected==='home'?result.homeSpread:result.awaySpread;return selectedSpread>0?1+0.2*Math.abs(selectedSpread):1;}
+export function roundPoints(n:number):number{return Math.round(n*100)/100;}
