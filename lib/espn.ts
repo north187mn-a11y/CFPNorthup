@@ -9,12 +9,132 @@ export type ESPNGame = {
   sourceUrl: string;
 };
 
+export type ESPNScheduleGame = {
+  eventId: string;
+  awayTeam: string;
+  awayTeamId: string;
+  homeTeam: string;
+  homeTeamId: string;
+  favoriteTeam: string | null;
+  favoriteTeamId: string | null;
+  underdogTeam: string | null;
+  underdogTeamId: string | null;
+  spread: number | null;
+  favoritePoints: number;
+  underdogPoints: number | null;
+  lineText: string | null;
+  sourceUrl: string;
+};
+
 function statusFromText(text: string): ESPNGame['status'] {
   const t = text.toLowerCase();
   if (/\bfinal\b/.test(t)) return 'final';
   if (t.includes('in progress') || t.includes('live') || /\bq[1-4]\b/.test(t) || t.includes('quarter')) return 'in_progress';
   if (t.includes('scheduled') || t.includes('upcoming')) return 'scheduled';
   return 'unknown';
+}
+
+function normalizeName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function teamIdFromHref(href: string) {
+  return href.match(/\/college-football\/team\/_\/id\/(\d+)/)?.[1] ?? '';
+}
+
+function eventIdFromHref(href: string) {
+  return href.match(/\/game\/_\/gameId\/(\d+)/)?.[1] ?? '';
+}
+
+export function espnScheduleUrl(year: number, week: number, seasonType = 2) {
+  return `https://www.espn.com/college-football/schedule/_/week/${week}/year/${year}/seasontype/${seasonType}`;
+}
+
+export async function fetchESPNSchedule(year: number, week: number, seasonType = 2): Promise<ESPNScheduleGame[]> {
+  const sourceUrl = espnScheduleUrl(year, week, seasonType);
+  const response = await fetch(sourceUrl, {
+    cache: 'no-store',
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; CollegeFootballPicks/1.0)',
+      Accept: 'text/html,application/xhtml+xml',
+    },
+  });
+  if (!response.ok) throw new Error(`ESPN returned ${response.status}`);
+
+  const html = await response.text();
+  const $ = cheerio.load(html);
+  const games: ESPNScheduleGame[] = [];
+
+  $('table tbody tr').each((_, row) => {
+    const $row = $(row);
+    const teamLinks = $row.find('a[href*="/college-football/team/_/id/"]').toArray();
+    const uniqueTeams: { name: string; id: string }[] = [];
+
+    for (const element of teamLinks) {
+      const link = $(element);
+      const name = link.text().trim();
+      const id = teamIdFromHref(link.attr('href') ?? '');
+      if (name && id && !uniqueTeams.some(t => t.id === id)) uniqueTeams.push({ name, id });
+    }
+    if (uniqueTeams.length < 2) return;
+
+    const away = uniqueTeams[0];
+    const home = uniqueTeams[1];
+    const gameHref = $row.find('a[href*="/college-football/game/_/gameId/"]').first().attr('href') ?? '';
+    const eventId = eventIdFromHref(gameHref);
+    if (!eventId) return;
+
+    const odds = $row.find('[data-testid="OddsFragmentLine"]').first();
+    const lineText = odds.text().trim() || null;
+    const detail = odds.attr('data-track-event_detail') ?? '';
+    const rawLine = lineText ?? detail.split(':').pop() ?? '';
+    const lineMatch = rawLine.match(/(?:Line:\s*)?(.+?)\s+([+-]?\d+(?:\.\d+)?)\s*$/i);
+
+    let favoriteTeam: string | null = null;
+    let favoriteTeamId: string | null = null;
+    let underdogTeam: string | null = null;
+    let underdogTeamId: string | null = null;
+    let spread: number | null = null;
+    let underdogPoints: number | null = null;
+
+    if (lineMatch) {
+      const favoriteToken = normalizeName(lineMatch[1]);
+      const signed = Number(lineMatch[2]);
+      if (Number.isFinite(signed) && signed < 0) {
+        spread = Math.abs(signed);
+        const favorite =
+          uniqueTeams.find(t => normalizeName(t.name) === favoriteToken) ??
+          uniqueTeams.find(t => normalizeName(t.name).includes(favoriteToken) || favoriteToken.includes(normalizeName(t.name)));
+        if (favorite) {
+          const underdog = favorite.id === away.id ? home : away;
+          favoriteTeam = favorite.name;
+          favoriteTeamId = favorite.id;
+          underdogTeam = underdog.name;
+          underdogTeamId = underdog.id;
+          underdogPoints = 1 + 0.2 * spread;
+        }
+      }
+    }
+
+    games.push({
+      eventId,
+      awayTeam: away.name,
+      awayTeamId: away.id,
+      homeTeam: home.name,
+      homeTeamId: home.id,
+      favoriteTeam,
+      favoriteTeamId,
+      underdogTeam,
+      underdogTeamId,
+      spread,
+      favoritePoints: 1,
+      underdogPoints: underdogPoints === null ? null : Math.round(underdogPoints * 10) / 10,
+      lineText,
+      sourceUrl,
+    });
+  });
+
+  return games;
 }
 
 export async function fetchESPNGame(eventId: string): Promise<ESPNGame> {
@@ -38,8 +158,6 @@ export async function fetchESPNGame(eventId: string): Promise<ESPNGame> {
   });
 
   if (teams.length < 2) {
-    // Fallback only for extracting the two scores/names. We intentionally do not
-    // infer home/away from this title; the league's game record owns that mapping.
     const title = $('meta[property="og:title"]').attr('content') ?? $('meta[name="title"]').attr('content') ?? '';
     const match = title.match(/^(.+?)\s+(\d+)\s*-\s*(\d+)\s+(.+?)\s+\(/);
     if (match) {
