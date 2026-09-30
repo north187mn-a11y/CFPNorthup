@@ -1,6 +1,6 @@
 # College Football Picks
 
-First MVP scaffold for the college football prediction/elimination league.
+First MVP scaffold for the college football prediction/elimination league. 
 
 ## League rules represented
 - 15 games selected each regular week.
