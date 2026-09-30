@@ -11,7 +11,7 @@ export function espnScheduleUrl(year:number,week:number,seasonType=2){
 
 export async function fetchESPNSchedule(year:number,week:number,seasonType=2):Promise<ESPNScheduleGame[]>{
  const sourceUrl=espnScheduleUrl(year,week,seasonType);
- const api=`https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${year}&seasontype=${seasonType}&week=${week}&groups=80&limit=1000`;
+ const api=`https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${year}&seasontype=${seasonType}&week=${week}&groups=80&limit=1000&offset=0`;
  const response=await fetch(api,{cache:'no-store',headers:{'User-Agent':'Mozilla/5.0'}});
  if(!response.ok)throw new Error(`ESPN returned ${response.status}`);
  const json=await response.json();
