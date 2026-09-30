@@ -13,7 +13,7 @@ export default function Login() {
     window.location.href = '/';
   }
   return <main className="container narrow"><div className="card">
-    <h1>Northup College Football Picks</h1><p className="muted">Sign in to your league account.</p>
+    <h1>College Football Survivor</h1><p className="muted">Sign in to your league account.</p>
     <form onSubmit={submit} className="form-stack">
       <label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} /></label>
       <label>Password<input type="password" required value={password} onChange={e=>setPassword(e.target.value)} /></label>
