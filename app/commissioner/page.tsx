@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireCommissioner } from '@/lib/auth';
+import InvitePlayerForm from './InvitePlayerForm';
 
 export default async function Commissioner() {
   const { supabase, profile } = await requireCommissioner();
@@ -14,6 +15,7 @@ export default async function Commissioner() {
       <div className="card"><div className="muted">Weeks Created</div><div className="stat">{weeks?.length ?? 0}</div></div>
       <div className="card"><div className="muted">Season</div><div className="stat">{league.season}</div></div>
     </div>
+    <InvitePlayerForm />
     <div className="card" style={{marginTop:16}}><h2>Weeks</h2>
       {!weeks?.length ? <p className="muted">No weeks yet. Create the first week to start entering games.</p> : <table><thead><tr><th>Week</th><th>Type</th><th>Status</th><th>Deadline</th><th></th></tr></thead><tbody>{weeks.map(w=><tr key={w.id}><td>Week {w.week_number}</td><td>{w.week_type}</td><td><span className="badge">{w.status}</span></td><td>{w.pick_deadline ? new Date(w.pick_deadline).toLocaleString() : '—'}</td><td><Link href={`/commissioner/weeks/${w.id}`}>Manage →</Link></td></tr>)}</tbody></table>}
     </div>
