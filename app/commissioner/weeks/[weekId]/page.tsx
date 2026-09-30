@@ -1,5 +1,6 @@
 import { requireCommissioner } from '@/lib/auth';
 import Link from 'next/link';
+import PublishWeekButton from './PublishWeekButton';
 
 function gameDay(value:string|null){
   if(!value)return '—';
@@ -17,7 +18,7 @@ export default async function ManageWeek({params}:{params:Promise<{weekId:string
   if(!week)return <main className="container"><h1>Week not found</h1></main>;
   const {data:games}=await supabase.from('games').select('*').eq('week_id',weekId).order('game_number');
   return <main className="container">
-    <div className="page-head"><div><h1>Week {week.week_number}</h1><p className="muted">Status: <span className="badge">{week.status}</span>{week.pick_deadline?` · Deadline: ${new Date(week.pick_deadline).toLocaleString()}`:''}</p></div><Link href={`/commissioner/weeks/${weekId}/games/new`}><button>+ Add Game</button></Link></div>
+    <div className="page-head"><div><h1>Week {week.week_number}</h1><p className="muted">Status: <span className="badge">{week.status}</span>{week.pick_deadline?` · Deadline: ${new Date(week.pick_deadline).toLocaleString()}`:''}</p></div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}>{week.status==='DRAFT' && <PublishWeekButton weekId={weekId} gameCount={games?.length??0}/>}<Link href={`/commissioner/weeks/${weekId}/games/new`}><button>+ Add Game</button></Link></div></div>
     <div className="card" style={{marginTop:16}}><h2>Games ({games?.length??0}/15)</h2>
       {!games?.length?<p className="muted">Load the ESPN week and select 15 games. The spread, bonus, day, time, and network will come from ESPN.</p>:
       <div style={{overflowX:'auto'}}><table><thead><tr><th>#</th><th>Matchup</th><th>Day</th><th>Time</th><th>Network</th><th>Locked spread</th><th>ESPN ID</th><th>Status</th></tr></thead><tbody>
