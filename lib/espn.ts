@@ -23,6 +23,10 @@ export type ESPNScheduleGame = {
   favoritePoints: number;
   underdogPoints: number | null;
   lineText: string | null;
+  day: string | null;
+  time: string | null;
+  network: string | null;
+  kickoffAt: string | null;
   sourceUrl: string;
 };
 
@@ -84,6 +88,19 @@ export async function fetchESPNSchedule(year: number, week: number, seasonType =
     const eventId = eventIdFromHref(gameHref);
     if (!eventId) return;
 
+    const cells = $row.find('td').toArray().map(el => $(el).text().trim());
+    const scheduleSection = $row.closest('.ScheduleTables, section, .ResponsiveTable');
+    const day = scheduleSection.find('h2, .Table__Title, .ScheduleTables__Title').first().text().trim() || null;
+    const time = $row.find('td[data-testid*="date" i], td[class*="date" i], a[href*="gameId"]').filter((_, el) => /\\d{1,2}:\\d{2}/.test($(el).text())).first().text().trim()
+      || cells.find(value => /\\b\\d{1,2}:\\d{2}\\s*(AM|PM)\\b/i.test(value)) || null;
+    const network = $row.find('td[data-testid*="broadcast" i], td[class*="broadcast" i], [class*="network" i]').first().text().trim()
+      || cells.find(value => /^(ABC|CBS|FOX|NBC|ESPN(?:2|U|NEWS)?|FS1|FS2|BTN|SEC Network|ACC Network|The CW|Peacock|Paramount\\+|ESPN\\+)$/i.test(value)) || null;
+    let kickoffAt: string | null = null;
+    if (day && time) {
+      const parsed = new Date(`${day} ${time}`);
+      if (!Number.isNaN(parsed.getTime())) kickoffAt = parsed.toISOString();
+    }
+
     const odds = $row.find('[data-testid="OddsFragmentLine"]').first();
     const lineText = odds.text().trim() || null;
     const detail = odds.attr('data-track-event_detail') ?? '';
@@ -130,6 +147,10 @@ export async function fetchESPNSchedule(year: number, week: number, seasonType =
       favoritePoints: 1,
       underdogPoints: underdogPoints === null ? null : Math.round(underdogPoints * 10) / 10,
       lineText,
+      day,
+      time,
+      network,
+      kickoffAt,
       sourceUrl,
     });
   });
