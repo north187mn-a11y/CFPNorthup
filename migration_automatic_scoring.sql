@@ -1,0 +1,11 @@
+-- Automatic scoring and commissioner week finalization
+-- Production applied 2026-10-02.
+-- FINAL games are scored idempotently using the locked favorite_points/underdog_points.
+-- Commissioner overrides immediately recalculate the affected game.
+-- make_week_final verifies every game is FINAL, recalculates, then marks the week COMPLETE.
+
+-- See production functions:
+-- public.recalculate_game_scoring(bigint)
+-- public.update_game_live_state(...)
+-- public.set_game_override(...)
+-- public.make_week_final(bigint)
