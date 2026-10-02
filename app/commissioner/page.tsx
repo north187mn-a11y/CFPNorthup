@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { requireCommissioner } from '@/lib/auth';
 import InvitePlayerForm from './InvitePlayerForm';
+import MakeFinalButton from './MakeFinalButton';
 
 export default async function Commissioner() {
   const { supabase, profile } = await requireCommissioner();
@@ -18,7 +19,7 @@ export default async function Commissioner() {
     <div style={{marginTop:16}}><Link href="/commissioner/corrections"><button>Game Corrections</button></Link></div>
     <InvitePlayerForm />
     <div className="card" style={{marginTop:16}}><h2>Weeks</h2>
-      {!weeks?.length ? <p className="muted">No weeks yet. Create the first week to start entering games.</p> : <table><thead><tr><th>Week</th><th>Type</th><th>Status</th><th>Deadline</th><th></th></tr></thead><tbody>{weeks.map(w=><tr key={w.id}><td>Week {w.week_number}</td><td>{w.week_type}</td><td><span className="badge">{w.status}</span></td><td>{w.pick_deadline ? new Date(w.pick_deadline).toLocaleString() : '—'}</td><td><Link href={`/commissioner/weeks/${w.id}`}>Manage →</Link></td></tr>)}</tbody></table>}
+      {!weeks?.length ? <p className="muted">No weeks yet. Create the first week to start entering games.</p> : <table><thead><tr><th>Week</th><th>Type</th><th>Status</th><th>Deadline</th><th>Finalize</th><th></th></tr></thead><tbody>{weeks.map(w=><tr key={w.id}><td>Week {w.week_number}</td><td>{w.week_type}</td><td><span className="badge">{w.status}</span></td><td>{w.pick_deadline ? new Date(w.pick_deadline).toLocaleString() : '—'}</td><td>{w.status==='COMPLETE'?<span className="muted">Final</span>:<MakeFinalButton weekId={w.id} disabled={false}/>}</td><td><Link href={`/commissioner/weeks/${w.id}`}>Manage →</Link></td></tr>)}</tbody></table>}
     </div>
   </main>;
 }
