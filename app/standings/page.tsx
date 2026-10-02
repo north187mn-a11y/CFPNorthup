@@ -34,8 +34,8 @@ export default async function Standings(){
  const postCut=!!lastWeek&&lastWeek.week_number>=7;
  const {data:eliminations}=postCut?await supabase.from('eliminations').select('player_id,weekly_score,ytd_score,elimination_rank').eq('league_id',m.league_id).eq('week_id',lastWeek.id):{data:[] as any[]};
  const eliminatedIds=(eliminations??[]).map((e:any)=>e.player_id);
- const survivorResults=postCut?[...rows].sort((a,b)=>{
-   const aw=a.ps.find(p=>p.week_id===lastWeek.id)?.points??0, bw=b.ps.find(p=>p.week_id===lastWeek.id)?.points??0;
+ const survivorResults=postCut?[...rows].sort((a:any,b:any)=>{
+   const aw=a.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??0, bw=b.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??0;
    return lastWeek.week_number===7?b.ytd-a.ytd:(bw-aw)||(b.ytd-a.ytd);
  }):[];
  const consolation=postCut?rows.filter((r:any)=>r.status==='ELIMINATED').map((r:any)=>({...r,last:r.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??0})).sort((a:any,b:any)=>b.last-a.last||b.ytd-a.ytd):[];
