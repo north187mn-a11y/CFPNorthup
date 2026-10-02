@@ -1,5 +1,6 @@
 import {NextResponse} from 'next/server';
 import {requireUser} from '@/lib/auth';
+import {createClient} from '@supabase/supabase-js';
 
 function gameStatus(state:string,completed:boolean){
  if(completed)return 'FINAL';
@@ -17,6 +18,9 @@ export async function POST(req:Request){
   if(!week)return NextResponse.json({error:'Week not found'},{status:404});
   const {data:membership}=await supabase.from('league_members').select('user_id').eq('league_id',week.league_id).eq('user_id',user.id).maybeSingle();
   if(!membership)return NextResponse.json({error:'Not authorized'},{status:403});
+  const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if(!serviceKey)return NextResponse.json({error:'Server scoring credential is not configured'},{status:500});
+  const admin=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
   const {data:games}=await supabase.from('games').select('id,espn_event_id,last_synced_at,commissioner_override').eq('week_id',weekId).order('game_number');
   let updated=0;
   for(const g of games??[]){
@@ -30,7 +34,7 @@ export async function POST(req:Request){
    const away=comp.competitors?.find((c:any)=>c.homeAway==='away');
    const home=comp.competitors?.find((c:any)=>c.homeAway==='home');
    const st=comp.status??j.header?.competitions?.[0]?.status;
-   const {error}=await supabase.rpc('update_game_live_state',{
+   const {error}=await admin.rpc('update_game_live_state',{
     p_game_id:g.id,
     p_status:gameStatus(st?.type?.state,!!st?.type?.completed),
     p_away_score:Number(away?.score??0),
