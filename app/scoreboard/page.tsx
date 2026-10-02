@@ -11,12 +11,12 @@ export default async function Scoreboard(){
  const gameIds=(games??[]).map((g:any)=>g.id);
  const {data:picks}=gameIds.length?await supabase.from('picks').select('game_id,selected_team_id').eq('player_id',user.id).in('game_id',gameIds):{data:[] as any[]};
  const last=(games??[]).map((g:any)=>g.last_synced_at).filter(Boolean).sort().pop();
- return <main className="container"><LiveRefresh weekId={week.id}/><div className="page-head"><div><h1>Week {week.week_number} Scoreboard</h1><p className="muted">The 15 league games only · refreshes from ESPN about every 5 minutes{last?` · Last updated ${new Date(last).toLocaleTimeString()}`:''}</p></div></div>
+ return <main className="container"><LiveRefresh weekId={week.id}/><div className="page-head"><div><h1>Week {week.week_number} Scoreboard</h1><p className="muted">The 15 league games only · refreshes from ESPN about every minute{last?` · Last updated ${new Date(last).toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'})}`:''}</p></div></div>
  <div className="grid" style={{marginTop:16}}>{(games??[]).map((g:any)=>{
   const favAway=g.favorite_team_name===g.away_team;
   const awayPts=favAway?Number(g.favorite_points):Number(g.underdog_points);
   const homePts=favAway?Number(g.underdog_points):Number(g.favorite_points);
-  const detail=g.status==='FINAL'?'Final':g.status==='IN_PROGRESS'?(g.status_detail||[g.period?`Q${g.period}`:'',g.clock].filter(Boolean).join(' ')):(g.kickoff_at?new Date(g.kickoff_at).toLocaleString():'Scheduled');
+  const detail=g.status==='FINAL'?'Final':g.status==='IN_PROGRESS'?(g.status_detail||[g.period?`Q${g.period}`:'',g.clock].filter(Boolean).join(' ')):(g.kickoff_at?new Date(g.kickoff_at).toLocaleString('en-US',{timeZone:'America/New_York',weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}):'Scheduled');
   const pick=(picks??[]).find((p:any)=>p.game_id===g.id)?.selected_team_id;
   const pickedAway=pick===g.away_team_id, pickedHome=pick===g.home_team_id;
   return <div className="card" key={g.id}><div style={{display:'flex',justifyContent:'space-between',gap:12}}><strong>Game {g.game_number}</strong><span className="badge">{detail}</span></div>
