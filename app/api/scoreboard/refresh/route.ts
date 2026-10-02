@@ -17,10 +17,10 @@ export async function POST(req:Request){
   if(!week)return NextResponse.json({error:'Week not found'},{status:404});
   const {data:membership}=await supabase.from('league_members').select('user_id').eq('league_id',week.league_id).eq('user_id',user.id).maybeSingle();
   if(!membership)return NextResponse.json({error:'Not authorized'},{status:403});
-  const {data:games}=await supabase.from('games').select('id,espn_event_id,last_synced_at').eq('week_id',weekId).order('game_number');
+  const {data:games}=await supabase.from('games').select('id,espn_event_id,last_synced_at,commissioner_override').eq('week_id',weekId).order('game_number');
   let updated=0;
   for(const g of games??[]){
-   if(!g.espn_event_id)continue;
+   if(!g.espn_event_id||g.commissioner_override)continue;
    if(g.last_synced_at&&Date.now()-new Date(g.last_synced_at).getTime()<4*60*1000)continue;
    const res=await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event=${g.espn_event_id}`,{cache:'no-store'});
    if(!res.ok)continue;
