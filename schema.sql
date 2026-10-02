@@ -116,7 +116,8 @@ create index if not exists games_espn_idx on games(espn_event_id);
 create index if not exists picks_week_player_idx on picks(week_id, player_id);
 create index if not exists scores_week_idx on weekly_scores(week_id);
 
--- YTD is intentionally calculated from weekly_scores rather than stored as a second source of truth.
+-- YTD includes every league member. Survivor elimination does not end league
+-- participation or stop a player from accumulating season-long points.
 create or replace view player_ytd_scores as
 select
   lm.league_id,
@@ -124,7 +125,6 @@ select
   coalesce(sum(ws.points),0)::numeric(10,2) as ytd_points
 from league_members lm
 left join weekly_scores ws on ws.player_id = lm.user_id
-where lm.status <> 'ELIMINATED'
 group by lm.league_id, ws.player_id;
 
 create table if not exists league_settings (
