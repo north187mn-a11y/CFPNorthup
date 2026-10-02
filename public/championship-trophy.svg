@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 760" role="img" aria-label="Championship trophy">
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0a8"/><stop offset=".35" stop-color="#d6ad43"/><stop offset=".72" stop-color="#8f651b"/><stop offset="1" stop-color="#f4d878"/></linearGradient><filter id="s"><feDropShadow dx="0" dy="14" stdDeviation="18" flood-opacity=".65"/></filter></defs>
+<g filter="url(#s)" fill="url(#g)">
+<path d="M250 42c-39 0-71 32-71 71 0 30 19 56 45 66v219h52V179c26-10 45-36 45-66 0-39-32-71-71-71zm0 38a33 33 0 1 1 0 66 33 33 0 0 1 0-66z"/>
+<path d="M112 152c22 87 61 154 112 194v75c-83-48-142-137-162-269h50zm276 0h50c-20 132-79 221-162 269v-75c51-40 90-107 112-194z"/>
+<path d="M205 393h90l22 158H183l22-158z"/><path d="M164 535h172l35 72H129l35-72z"/><rect x="112" y="602" width="276" height="42" rx="12"/><path d="M150 644h200l32 74H118l32-74z"/>
+</g><path d="M250 61v88" stroke="#fff7c8" stroke-width="5" opacity=".7"/></svg>
