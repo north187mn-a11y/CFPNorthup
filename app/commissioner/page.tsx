@@ -11,7 +11,7 @@ export default async function Commissioner() {
   return <main className="container">
     <div className="page-head"><div><h1>Commissioner Dashboard</h1><p className="muted">{league.name} · {league.season}</p></div><Link href="/commissioner/weeks/new"><button>+ New Week</button></Link></div>
     <div className="grid grid-3" style={{marginTop:20}}>
-      <div className="card"><div className="muted">Active Players</div><div className="stat">{playerCount ?? 0}</div></div>
+      <div className="card"><div className="muted">Survivor Players Remaining</div><div className="stat">{playerCount ?? 0}</div></div>
       <div className="card"><div className="muted">Weeks Created</div><div className="stat">{weeks?.length ?? 0}</div></div>
       <div className="card"><div className="muted">Season</div><div className="stat">{league.season}</div></div>
     </div>
