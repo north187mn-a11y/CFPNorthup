@@ -11,6 +11,7 @@ export default function NavMenu(){
   {open&&<div className="menu-dropdown" onClick={()=>setOpen(false)}>
    <Link href="/dashboard">This Week</Link>
    <Link href="/standings">Standings</Link>
+   <Link href="/scoreboard">Live Scoreboard</Link>
    <Link href="/weeks">Previous Weeks</Link>
    <Link href="/rules">Rules</Link>
    <Link href="/commissioner">Commissioner</Link>
