@@ -30,3 +30,11 @@ h1,h2,h3{color:var(--cf-gold-light)}a{color:#e4c45f}
 input,select{background:#f7f5ed;color:#171717;border-color:#a88a42}button{border:1px solid rgba(255,225,135,.18)}
 table{background:rgba(17,18,15,.65)}th{color:var(--cf-gold-light);background:rgba(214,173,67,.07)}th,td{border-bottom-color:rgba(214,173,67,.18)}
 .error{color:#ff8e8e}
+
+/* Login artwork visibility + 2.5s branded intro */
+.login-trophy-stage{z-index:1}
+.login-trophy-picture{display:block;position:relative;z-index:1}
+.login-trophy-picture .login-trophy-image{display:block;opacity:1;visibility:visible}
+.login-trophy-stage{animation:trophyShift .8s ease 2.5s forwards}
+.login-card{animation:loginReveal .7s ease 2.5s forwards}
+@media(max-width:760px){.login-trophy-stage{animation:trophyShiftMobile .8s ease 2.5s forwards}}
