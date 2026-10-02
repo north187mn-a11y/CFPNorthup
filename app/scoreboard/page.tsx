@@ -20,7 +20,7 @@ export default async function Scoreboard(){
   const pick=(picks??[]).find((p:any)=>p.game_id===g.id)?.selected_team_id;
   const pickedAway=pick===g.away_team_id, pickedHome=pick===g.home_team_id;
   return <div className="card" key={g.id}><div style={{display:'flex',justifyContent:'space-between',gap:12}}><strong>Game {g.game_number}</strong><span className="badge">{detail}</span></div>
-   <table style={{marginTop:8}}><tbody><tr><td>{pickedAway?<strong>{g.away_team}</strong>:g.away_team}</td><td style={{textAlign:'right'}}><strong>{g.away_score??'—'}</strong></td><td style={{textAlign:'right'}}>{pickedAway?<strong>{awayPts.toFixed(1)} pts</strong>:`${awayPts.toFixed(1)} pts`}</td></tr><tr><td>{pickedHome?<strong>{g.home_team}</strong>:g.home_team}</td><td style={{textAlign:'right'}}><strong>{g.home_score??'—'}</strong></td><td style={{textAlign:'right'}}>{pickedHome?<strong>{homePts.toFixed(1)} pts</strong>:`${homePts.toFixed(1)} pts`}</td></tr></tbody></table>
-   <p className="muted" style={{marginBottom:0}}>{pick?'Bold = your pick':'No pick submitted'} · {g.network||'Network TBD'}</p></div>
+   <table style={{marginTop:8}}><tbody><tr><td>{pickedAway?<>★ {g.away_team}</>:g.away_team}</td><td style={{textAlign:'right'}}><strong>{g.away_score??'—'}</strong></td><td style={{textAlign:'right'}}>{`${awayPts.toFixed(1)} pts`}</td></tr><tr><td>{pickedHome?<>★ {g.home_team}</>:g.home_team}</td><td style={{textAlign:'right'}}><strong>{g.home_score??'—'}</strong></td><td style={{textAlign:'right'}}>{`${homePts.toFixed(1)} pts`}</td></tr></tbody></table>
+   <p className="muted" style={{marginBottom:0}}>{pick?'★ = your pick':'No pick submitted'} · {g.network||'Network TBD'}</p></div>
  })}</div></main>;
 }
