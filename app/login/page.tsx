@@ -21,7 +21,7 @@ export default function Login() {
     if (error) { setError(error.message); return; }
     setMessage('Password reset email sent. Check your inbox and spam/junk folder.');
   }
-  return <main className="login-page"><div className="login-trophy-stage" aria-hidden="true"><img className="login-trophy-image" src="/championship-trophy.svg" alt="" /></div><div className="login-card">
+  return <main className="login-page"><div className="login-trophy-stage" aria-hidden="true"><picture className="login-trophy-picture"><source media="(max-width: 760px)" srcSet="/phone-sm.jpg" /><img className="login-trophy-image" src="/desktop-sm.jpg" alt="" /></picture></div><div className="login-card">
     <h1>College Football Survivor</h1><p className="muted">Sign in to your league account.</p>
     <form onSubmit={submit} className="form-stack">
       <label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)} /></label>
