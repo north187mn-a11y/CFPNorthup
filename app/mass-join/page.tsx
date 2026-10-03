@@ -1,0 +1,13 @@
+'use client';
+import {createBrowserClient} from '@supabase/ssr';
+import {useState} from 'react';
+
+type Player={id:number;display_name:string};
+
+export default function MassJoin(){
+ const [code,setCode]=useState(''),[players,setPlayers]=useState<Player[]>([]),[playerId,setPlayerId]=useState(''),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false),[unlocked,setUnlocked]=useState(false);
+ const s=createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+ async function unlock(e:React.FormEvent){e.preventDefault();setBusy(true);setMsg('');const {data,error}=await s.rpc('list_mass_join_players',{p_code:code});setBusy(false);if(error||!data?.length){setMsg(error?.message||'Join code is invalid or there are no players left to claim.');return;}setPlayers(data);setUnlocked(true);}
+ async function join(e:React.FormEvent){e.preventDefault();setBusy(true);setMsg('');let {error}=await s.auth.signUp({email,password});if(error){const login=await s.auth.signInWithPassword({email,password});error=login.error;}if(error){setMsg(error.message);setBusy(false);return;}const {error:claim}=await s.rpc('claim_mass_join_player',{p_code:code,p_historical_player_id:Number(playerId)});if(claim){setMsg(claim.message);setBusy(false);return;}window.location.href='/dashboard';}
+ return <main className="container narrow"><div className="card"><h1>Join College Football Survivor</h1>{!unlocked?<><p className="muted">Enter the league join code to get started.</p><form onSubmit={unlock} className="form-stack"><label>League join code<input required value={code} onChange={e=>setCode(e.target.value)}/></label><button disabled={busy}>{busy?'Checking…':'Continue'}</button></form></>:<><p className="muted">Choose your name, then create your account. Your previous league scores and picks will be connected automatically.</p><form onSubmit={join} className="form-stack"><label>Your name<select required value={playerId} onChange={e=>setPlayerId(e.target.value)}><option value="">Select your name</option>{players.map(p=><option key={p.id} value={p.id}>{p.display_name}</option>)}</select></label><label>Email<input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></label><label>Create password<input type="password" minLength={8} required value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy||!playerId}>{busy?'Joining…':'Create Account & Join League'}</button></form></>}{msg&&<p className="error">{msg}</p>}</div></main>;
+}
