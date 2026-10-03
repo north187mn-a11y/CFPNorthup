@@ -12,7 +12,7 @@ export default async function Scoreboard(){
  const {data:picks}=gameIds.length?await supabase.from('picks').select('game_id,selected_team_id').eq('player_id',user.id).in('game_id',gameIds):{data:[] as any[]};
  const last=(games??[]).map((g:any)=>g.last_synced_at).filter(Boolean).sort().pop();
  return <main className="container"><LiveRefresh weekId={week.id}/><div className="page-head"><div><h1>Week {week.week_number} Scoreboard</h1><p className="muted">The 15 league games only · refreshes from ESPN about every minute{last?` · Last updated ${new Date(last).toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'})}`:''}</p></div></div>
- <div className="grid" style={{marginTop:16}}>{(games??[]).map((g:any)=>{
+ <div className="grid" style={{marginTop:16}}>{[...(games??[])].sort((a:any,b:any)=>{const rank=(g:any)=>g.status==='IN_PROGRESS'?0:g.status==='FINAL'?2:1;return rank(a)-rank(b)||a.game_number-b.game_number}).map((g:any)=>{
   const favAway=g.favorite_team_name===g.away_team;
   const awayPts=favAway?Number(g.favorite_points):Number(g.underdog_points);
   const homePts=favAway?Number(g.underdog_points):Number(g.favorite_points);
