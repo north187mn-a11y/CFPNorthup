@@ -8,12 +8,14 @@ export default async function Dashboard(){
  const {data:games}=await supabase.from('games').select('*').eq('week_id',week.id).order('game_number');
  const {data:mine}=await supabase.from('picks').select('game_id,selected_team_id').eq('week_id',week.id).eq('player_id',user.id);
  const initial=Object.fromEntries((mine??[]).map(p=>[String(p.game_id),p.selected_team_id]));
+ const {data:exception}=await supabase.from('late_pick_exceptions').select('expires_at,consumed_at').eq('week_id',week.id).eq('player_id',user.id).maybeSingle();
+ const lateException=week.status==='OPEN'&&!Object.keys(initial).length&&exception&&!exception.consumed_at&&Date.now()<new Date(exception.expires_at).getTime()?exception.expires_at:null;
  const after=week.pick_deadline&&Date.now()>=new Date(week.pick_deadline).getTime();
  let all:any[]=[]; if(after){const {data}=await supabase.from('picks').select('player_id,game_id,selected_team_name').eq('week_id',week.id);all=data??[];}
  const {data:members}=after?await supabase.from('league_members').select('user_id').eq('league_id',membership.league_id):{data:[] as any[]};
  const ids=(members??[]).map((m:any)=>m.user_id); const {data:profiles}=after&&ids.length?await supabase.from('profiles').select('id,full_name').in('id',ids):{data:[] as any[]};
  return <main className="container"><div className="page-head"><div><h1>Player Dashboard</h1><p className="muted">Week {week.week_number} · <span className="badge">{week.status}</span>{week.pick_deadline?` · Picks due ${new Date(week.pick_deadline).toLocaleString()}`:''}</p></div></div>
- <PickSheet weekId={week.id} games={games??[]} initial={initial} deadline={week.pick_deadline}/>
+ <PickSheet weekId={week.id} games={games??[]} initial={initial} deadline={week.pick_deadline} weekStatus={week.status} lateException={lateException}/>
  {after&&<div className="card" style={{marginTop:16}}><h2>Everyone's Picks</h2><p className="muted">Visible after the pick deadline.</p><div style={{overflowX:'auto'}}><table><thead><tr><th>Player</th>{(games??[]).map(g=><th key={g.id}>#{g.game_number}</th>)}</tr></thead><tbody>{(profiles??[]).map((p:any)=><tr key={p.id}><td>{p.full_name}</td>{(games??[]).map(g=><td key={g.id}>{all.find(x=>x.player_id===p.id&&x.game_id===g.id)?.selected_team_name??'—'}</td>)}</tr>)}</tbody></table></div></div>}
  </main>;
 }
