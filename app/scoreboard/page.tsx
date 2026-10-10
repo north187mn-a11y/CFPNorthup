@@ -12,7 +12,14 @@ export default async function Scoreboard(){
  const {data:picks}=gameIds.length?await supabase.from('picks').select('game_id,selected_team_id').eq('player_id',user.id).in('game_id',gameIds):{data:[] as any[]};
  const {data:hp}=await supabase.from('historical_players').select('id').eq('league_id',m.league_id).eq('user_id',user.id).maybeSingle();
  const {data:priorScores}=hp?await supabase.from('historical_week_scores').select('points,week_id').eq('historical_player_id',hp.id):{data:[] as any[]};
- const priorYtd=(priorScores??[]).reduce((sum:number,s:any)=>sum+Number(s.points??0),0);
+ // Historical weeks 1-4 are stored separately from scored website weeks 5+.
+ // Exclude the live week to avoid counting its points twice.
+ const {data:completedWeeks}=await supabase.from('weeks').select('id').eq('league_id',m.league_id).eq('status','COMPLETE').lt('week_number',week.week_number);
+ const completedIds=(completedWeeks??[]).map((w:any)=>w.id);
+ const {data:completedScores}=completedIds.length?await supabase.from('weekly_scores').select('points,week_id').eq('player_id',user.id).in('week_id',completedIds):{data:[] as any[]};
+ const historicalIds=new Set((priorScores??[]).map((s:any)=>String(s.week_id)));
+ const priorYtd=(priorScores??[]).reduce((sum:number,s:any)=>sum+Number(s.points??0),0)
+  +(completedScores??[]).filter((s:any)=>!historicalIds.has(String(s.week_id))).reduce((sum:number,s:any)=>sum+Number(s.points??0),0);
  const pickedPoints=(g:any,pick:string|null|undefined)=>{
   if(!pick)return 0;
   const favAway=g.favorite_team_name===g.away_team;
