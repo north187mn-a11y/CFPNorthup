@@ -24,6 +24,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ weekId
     if (!league) return NextResponse.json({ error: 'You cannot publish this week.' }, { status: 403 });
     if (week.status !== 'DRAFT') return NextResponse.json({ error: `Week is already ${week.status}.` }, { status: 409 });
 
+    // A new week cannot be published until every earlier week is finalized.
+    const { data:earlierWeeks,error:earlierError } = await supabase.from('weeks')
+      .select('week_number,status').eq('league_id',week.league_id)
+      .lt('week_number', (await supabase.from('weeks').select('week_number').eq('id',week.id).single()).data?.week_number ?? 0);
+    if(earlierError)throw earlierError;
+    const unfinished=(earlierWeeks??[]).filter(w=>w.status!=='COMPLETE');
+    if(unfinished.length)return NextResponse.json({error:`Close Week ${unfinished[0].week_number} before publishing this week.`},{status:409});
+
     const { count, error: countError } = await supabase
       .from('games')
       .select('id', { count: 'exact', head: true })
