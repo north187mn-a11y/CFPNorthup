@@ -1,4 +1,5 @@
 import { requireCommissioner } from '@/lib/auth';
+import EditDeadline from './EditDeadline';
 import Link from 'next/link';
 import PublishWeekButton from './PublishWeekButton';
 import UpdateSpreadsButton from './UpdateSpreadsButton';
@@ -28,6 +29,7 @@ export default async function ManageWeek({params}:{params:Promise<{weekId:string
         {games.map(g=><tr key={g.id}><td>{g.game_number}</td><td>{g.away_team} @ {g.home_team}</td><td>{gameDay(g.kickoff_at)}</td><td>{gameTime(g.kickoff_at)}</td><td>{g.network||'—'}</td><td>{g.locked_spread}</td><td>{g.espn_event_id||'—'}</td><td>{g.status}</td></tr>)}
       </tbody></table></div>}
     </div>
+    {['DRAFT','OPEN'].includes(week.status) && <EditDeadline weekId={weekId} deadline={week.pick_deadline}/>}
     <DeleteWeekButton weekId={weekId} weekNumber={week.week_number} status={week.status}/>
   </main>
 }
