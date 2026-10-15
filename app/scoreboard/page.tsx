@@ -45,7 +45,7 @@ export default async function Scoreboard(){
  const ytd=priorYtd+wtdEarned;
  const last=(games??[]).map((g:any)=>g.last_synced_at).filter(Boolean).sort().pop();
  return <main className="container"><LiveRefresh weekId={week.id}/><div className="page-head"><div><h1>Week {week.week_number} Scoreboard</h1><p className="muted">The 15 league games only · refreshes from ESPN about every minute{last?` · Last updated ${new Date(last).toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'})}`:''}</p></div></div>
- <div className="grid" style={{marginTop:16,gridTemplateColumns:'repeat(3,minmax(0,1fr))'}}>
+ <div className="grid scoreboard-summary" style={{marginTop:16}}>
   <div className="card" style={{textAlign:'center'}}><div className="muted">YTD Total</div><div style={{fontSize:'2rem',fontWeight:700}}>{ytd.toFixed(1)}</div><div className="muted">points through now</div></div>
   <div className="card" style={{textAlign:'center'}}><div className="muted">WTD Total</div><div style={{fontSize:'2rem',fontWeight:700}}>{wtdEarned.toFixed(1)}</div><div className="muted">earned this week</div></div>
   <div className="card" style={{textAlign:'center'}}><div className="muted">WTD Potential</div><div style={{fontSize:'2rem',fontWeight:700}}>{wtdPotential.toFixed(1)}</div><div className="muted">if remaining picks win</div></div>
@@ -57,8 +57,17 @@ export default async function Scoreboard(){
   const detail=g.status==='FINAL'?'Final':g.status==='IN_PROGRESS'?(g.status_detail||[g.period?`Q${g.period}`:'',g.clock].filter(Boolean).join(' ')):(g.kickoff_at?new Date(g.kickoff_at).toLocaleString('en-US',{timeZone:'America/New_York',weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}):'Scheduled');
   const pick=(picks??[]).find((p:any)=>p.game_id===g.id)?.selected_team_id;
   const pickedAway=pick===g.away_team_id, pickedHome=pick===g.home_team_id;
-  return <div className="card" key={g.id}><div style={{display:'flex',justifyContent:'space-between',gap:12}}><strong>Game {g.game_number}</strong><span className="badge">{detail}</span></div>
-   <table style={{marginTop:8}}><tbody><tr><td>{pickedAway?<>★ {g.away_team}</>:g.away_team}</td><td style={{textAlign:'right'}}><strong>{g.away_score??'—'}</strong></td><td style={{textAlign:'right'}}>{`${awayPts.toFixed(1)} pts`}</td></tr><tr><td>{pickedHome?<>★ {g.home_team}</>:g.home_team}</td><td style={{textAlign:'right'}}><strong>{g.home_score??'—'}</strong></td><td style={{textAlign:'right'}}>{`${homePts.toFixed(1)} pts`}</td></tr></tbody></table>
-   <p className="muted" style={{marginBottom:0}}>{pick?'★ = your pick':'No pick submitted'} · {g.network||'Network TBD'}</p></div>
+  const pickPts=pick?pickedPoints(g,pick):0;
+  const pickedWon=g.status==='FINAL'&&((pickedAway&&Number(g.away_score)>Number(g.home_score))||(pickedHome&&Number(g.home_score)>Number(g.away_score)));
+  const pickedLost=g.status==='FINAL'&&!!pick&&!pickedWon;
+  const pickLabel=!pick?'No pick submitted':pickedWon?`Your pick won · +${pickPts.toFixed(1)} pts`:pickedLost?'Your pick lost':`Potential +${pickPts.toFixed(1)} pts`;
+  return <article className="card scoreboard-game" key={g.id}>
+   <div className="scoreboard-game-header"><strong>Game {g.game_number}</strong><span className="badge">{detail}</span></div>
+   <div className="scoreboard-teams">
+    <div className={pickedAway?'scoreboard-team is-picked':'scoreboard-team'}><span className="scoreboard-team-name">{pickedAway&&<span aria-label="Your pick">★ </span>}{g.away_team}</span><strong className="scoreboard-team-score">{g.away_score??'—'}</strong><span className="scoreboard-team-points">{awayPts.toFixed(1)} pts</span></div>
+    <div className={pickedHome?'scoreboard-team is-picked':'scoreboard-team'}><span className="scoreboard-team-name">{pickedHome&&<span aria-label="Your pick">★ </span>}{g.home_team}</span><strong className="scoreboard-team-score">{g.home_score??'—'}</strong><span className="scoreboard-team-points">{homePts.toFixed(1)} pts</span></div>
+   </div>
+   <div className="scoreboard-game-footer"><strong className={pickedLost?'scoreboard-pick-lost':'scoreboard-pick-status'}>{pickLabel}</strong><span>{g.network||'Network TBD'}</span></div>
+  </article>;
  })}</div></main>;
 }
