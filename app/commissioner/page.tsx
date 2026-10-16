@@ -5,7 +5,7 @@ import MakeFinalButton from './MakeFinalButton';
 
 export default async function Commissioner() {
   const { supabase, profile } = await requireCommissioner();
-  const { data: league } = await supabase.from('leagues').select('id,name,season').eq('commissioner_id', profile.id).order('season',{ascending:false}).limit(1).single();
+  const { data: league } = await supabase.from('leagues').select('id,name,season,commissioner_id').order('season',{ascending:false}).limit(1).single();
   if (!league) return <main className="container"><h1>No league found</h1><p className="muted">Your commissioner profile exists, but no league is attached.</p></main>;
   const { data: weeks } = await supabase.from('weeks').select('id,week_number,week_type,status,pick_deadline').eq('league_id', league.id).order('week_number');
   const { count: playerCount } = await supabase.from('league_members').select('*',{count:'exact',head:true}).eq('league_id',league.id).neq('status','ELIMINATED');
@@ -13,7 +13,7 @@ export default async function Commissioner() {
   const { data: members } = await supabase.from('league_members').select('user_id').eq('league_id', league.id);
   const memberIds = (members ?? []).map(m => m.user_id);
   const { data: profiles } = memberIds.length ? await supabase.from('profiles').select('id,full_name,role').in('id',memberIds) : {data: [] as {id:string,full_name:string,role:string}[]};
-  const playerIds = memberIds.filter(id => profiles?.find(p => p.id === id)?.role !== 'COMMISSIONER' && id !== profile.id);
+  const playerIds = memberIds.filter(id => id !== league.commissioner_id);
   const { count: gameCount } = currentWeek ? await supabase.from('games').select('*',{count:'exact',head:true}).eq('week_id',currentWeek.id) : {count:0};
   const { data: submittedPicks } = currentWeek ? await supabase.from('picks').select('player_id,game_id').eq('week_id',currentWeek.id) : {data: [] as {player_id:string,game_id:number}[]};
   const submissionRows = playerIds.map(id => ({id, name: profiles?.find(p => p.id === id)?.full_name || 'Unnamed player', count: new Set((submittedPicks ?? []).filter(p => p.player_id === id).map(p => p.game_id)).size})).sort((a,b) => a.count-b.count || a.name.localeCompare(b.name));
