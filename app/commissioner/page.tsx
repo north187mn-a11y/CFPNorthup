@@ -9,6 +9,18 @@ export default async function Commissioner() {
   if (!league) return <main className="container"><h1>No league found</h1><p className="muted">Your commissioner profile exists, but no league is attached.</p></main>;
   const { data: weeks } = await supabase.from('weeks').select('id,week_number,week_type,status,pick_deadline').eq('league_id', league.id).order('week_number');
   const { count: playerCount } = await supabase.from('league_members').select('*',{count:'exact',head:true}).eq('league_id',league.id).neq('status','ELIMINATED');
+  const currentWeek = [...(weeks ?? [])].reverse().find(w => w.status === 'OPEN') ?? [...(weeks ?? [])].reverse()[0];
+  const { data: members } = await supabase.from('league_members').select('user_id').eq('league_id', league.id);
+  const memberIds = (members ?? []).map(m => m.user_id);
+  const { data: profiles } = memberIds.length ? await supabase.from('profiles').select('id,full_name,role').in('id',memberIds) : {data: [] as {id:string,full_name:string,role:string}[]};
+  const playerIds = memberIds.filter(id => profiles?.find(p => p.id === id)?.role !== 'COMMISSIONER' && id !== profile.id);
+  const { count: gameCount } = currentWeek ? await supabase.from('games').select('*',{count:'exact',head:true}).eq('week_id',currentWeek.id) : {count:0};
+  const { data: submittedPicks } = currentWeek ? await supabase.from('picks').select('player_id,game_id').eq('week_id',currentWeek.id) : {data: [] as {player_id:string,game_id:number}[]};
+  const submissionRows = playerIds.map(id => ({id, name: profiles?.find(p => p.id === id)?.full_name || 'Unnamed player', count: new Set((submittedPicks ?? []).filter(p => p.player_id === id).map(p => p.game_id)).size})).sort((a,b) => a.count-b.count || a.name.localeCompare(b.name));
+  const totalGames = gameCount ?? 0;
+  const completedCount = submissionRows.filter(r => totalGames > 0 && r.count >= totalGames).length;
+  const incompleteCount = submissionRows.filter(r => r.count > 0 && r.count < totalGames).length;
+  const notStartedCount = submissionRows.filter(r => r.count === 0).length;
   return <main className="container">
     <div className="page-head"><div><h1>Commissioner Dashboard</h1><p className="muted">{league.name} · {league.season}</p></div><Link href="/commissioner/weeks/new"><button>+ New Week</button></Link></div>
     <div className="grid grid-3" style={{marginTop:20}}>
@@ -17,6 +29,21 @@ export default async function Commissioner() {
       <div className="card"><div className="muted">Season</div><div className="stat">{league.season}</div></div>
     </div>
     <div style={{marginTop:16}}><Link href="/commissioner/corrections"><button>Game Corrections</button></Link></div>
+    {currentWeek && <div className="card" style={{marginTop:16,overflowX:'auto'}}>
+      <h2>Week {currentWeek.week_number} — Pick Submission Status</h2>
+      <p className="muted">Completed: {completedCount} · Incomplete: {incompleteCount} · Not started: {notStartedCount} · Remaining: {submissionRows.length-completedCount}</p>
+      <p className="muted">Deadline: {currentWeek.pick_deadline ? new Date(currentWeek.pick_deadline).toLocaleString() : 'Not set'} · {totalGames} games</p>
+      <details open><summary>Players still needing picks ({submissionRows.length-completedCount})</summary>
+        <table><thead><tr><th>Player</th><th>Picks</th><th>Status</th></tr></thead><tbody>
+          {submissionRows.filter(r => r.count < totalGames).map(r => <tr key={r.id}><td>{r.name}</td><td>{r.count}/{totalGames}</td><td>{r.count === 0 ? 'Not started' : 'Incomplete'}</td></tr>)}
+        </tbody></table>
+      </details>
+      <details style={{marginTop:12}}><summary>Completed players ({completedCount})</summary>
+        <table><thead><tr><th>Player</th><th>Picks</th><th>Status</th></tr></thead><tbody>
+          {submissionRows.filter(r => totalGames > 0 && r.count >= totalGames).map(r => <tr key={r.id}><td>{r.name}</td><td>{r.count}/{totalGames}</td><td>Completed</td></tr>)}
+        </tbody></table>
+      </details>
+    </div>}
     <InvitePlayerForm />
     <div className="card" style={{marginTop:16}}><h2>Weeks</h2>
       {!weeks?.length ? <p className="muted">No weeks yet. Create the first week to start entering games.</p> : <table><thead><tr><th>Week</th><th>Type</th><th>Status</th><th>Deadline</th><th>Finalize</th><th></th></tr></thead><tbody>{weeks.map(w=><tr key={w.id}><td>Week {w.week_number}</td><td>{w.week_type}</td><td><span className="badge">{w.status}</span></td><td>{w.pick_deadline ? new Date(w.pick_deadline).toLocaleString() : '—'}</td><td>{w.status==='COMPLETE'?<span className="muted">Final</span>:<MakeFinalButton weekId={w.id} disabled={false}/>}</td><td><Link href={`/commissioner/weeks/${w.id}`}>Manage →</Link></td></tr>)}</tbody></table>}
