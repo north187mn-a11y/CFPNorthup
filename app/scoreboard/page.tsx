@@ -48,13 +48,18 @@ export default async function Scoreboard(){
  <div className="grid scoreboard-summary" style={{marginTop:16}}>
   <div className="card" style={{textAlign:'center'}}><div className="muted">YTD Total</div><div style={{fontSize:'2rem',fontWeight:700}}>{ytd.toFixed(1)}</div><div className="muted">points through now</div></div>
   <div className="card" style={{textAlign:'center'}}><div className="muted">WTD Total</div><div style={{fontSize:'2rem',fontWeight:700}}>{wtdEarned.toFixed(1)}</div><div className="muted">earned this week</div></div>
-  <div className="card" style={{textAlign:'center'}}><div className="muted">WTD Potential</div><div style={{fontSize:'2rem',fontWeight:700}}>{wtdPotential.toFixed(1)}</div><div className="muted">if remaining picks win</div></div>
+  <div className="card" style={{textAlign:'center'}}><div className="muted">Max This Week</div><div style={{fontSize:'2rem',fontWeight:700}}>{wtdPotential.toFixed(1)}</div><div className="muted">if remaining picks win</div></div>
  </div>
  <div className="grid" style={{marginTop:16}}>{[...(games??[])].sort((a:any,b:any)=>{const rank=(g:any)=>g.status==='IN_PROGRESS'?0:g.status==='FINAL'?2:1;return rank(a)-rank(b)||a.game_number-b.game_number}).map((g:any)=>{
   const favAway=g.favorite_team_name===g.away_team;
   const awayPts=favAway?Number(g.favorite_points):Number(g.underdog_points);
   const homePts=favAway?Number(g.underdog_points):Number(g.favorite_points);
-  const detail=g.status==='FINAL'?'Final':g.status==='IN_PROGRESS'?(g.status_detail||[g.period?`Q${g.period}`:'',g.clock].filter(Boolean).join(' ')):(g.kickoff_at?new Date(g.kickoff_at).toLocaleString('en-US',{timeZone:'America/New_York',weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}):'Scheduled');
+  const isLive=g.status==='IN_PROGRESS';
+  const showScore=isLive||g.status==='FINAL';
+  const kickoff=g.kickoff_at?new Date(g.kickoff_at):null;
+  const kickoffDay=kickoff?.toLocaleDateString('en-US',{timeZone:'America/New_York',weekday:'short'});
+  const kickoffTime=kickoff?.toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit'}).replace(':00','').replace('12 PM','Noon').replace('12 AM','Midnight');
+  const detail=g.status==='FINAL'?'Final':isLive?(g.status_detail||[g.period?`Q${g.period}`:'',g.clock].filter(Boolean).join(' ')||'In progress'):(kickoff?`${kickoffDay} · ${kickoffTime} ET`:'Scheduled');
   const pick=(picks??[]).find((p:any)=>p.game_id===g.id)?.selected_team_id;
   const pickedAway=pick===g.away_team_id, pickedHome=pick===g.home_team_id;
   const pickPts=pick?pickedPoints(g,pick):0;
@@ -62,10 +67,10 @@ export default async function Scoreboard(){
   const pickedLost=g.status==='FINAL'&&!!pick&&!pickedWon;
   const pickLabel=!pick?'No pick submitted':pickedWon?`Your pick won · +${pickPts.toFixed(1)} pts`:pickedLost?'Your pick lost':`Potential +${pickPts.toFixed(1)} pts`;
   return <article className="card scoreboard-game" key={g.id}>
-   <div className="scoreboard-game-header"><strong>Game {g.game_number}</strong><span className="badge">{detail}</span></div>
+   <div className="scoreboard-game-header"><strong>Game {g.game_number}</strong><span className="badge">{isLive&&<strong style={{color:'#b7f7bf'}}>● LIVE · </strong>}{detail}</span></div>
    <div className="scoreboard-teams">
-    <div className={pickedAway?'scoreboard-team is-picked':'scoreboard-team'}><span className="scoreboard-team-name">{pickedAway&&<span aria-label="Your pick">★ </span>}{g.away_team}</span><strong className="scoreboard-team-score">{g.away_score??'—'}</strong><span className="scoreboard-team-points">{awayPts.toFixed(1)} pts</span></div>
-    <div className={pickedHome?'scoreboard-team is-picked':'scoreboard-team'}><span className="scoreboard-team-name">{pickedHome&&<span aria-label="Your pick">★ </span>}{g.home_team}</span><strong className="scoreboard-team-score">{g.home_score??'—'}</strong><span className="scoreboard-team-points">{homePts.toFixed(1)} pts</span></div>
+    <div className={pickedAway?'scoreboard-team is-picked':'scoreboard-team'}><span className="scoreboard-team-name">{pickedAway&&<span aria-label="Your pick">★ </span>}{g.away_team}</span><strong className="scoreboard-team-score">{showScore?(g.away_score??'—'):'—'}</strong><span className="scoreboard-team-points">{awayPts.toFixed(1)} pts</span></div>
+    <div className={pickedHome?'scoreboard-team is-picked':'scoreboard-team'}><span className="scoreboard-team-name">{pickedHome&&<span aria-label="Your pick">★ </span>}{g.home_team}</span><strong className="scoreboard-team-score">{showScore?(g.home_score??'—'):'—'}</strong><span className="scoreboard-team-points">{homePts.toFixed(1)} pts</span></div>
    </div>
    <div className="scoreboard-game-footer"><strong className={pickedLost?'scoreboard-pick-lost':'scoreboard-pick-status'}>{pickLabel}</strong><span>{g.network||'Network TBD'}</span></div>
   </article>;
