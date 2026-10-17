@@ -80,3 +80,21 @@ table{background:rgba(17,18,15,.65)}th{color:var(--cf-gold-light);background:rgb
  .scoreboard-team-points{font-size:11px}
  .scoreboard-game-footer{gap:6px;font-size:11px;margin-top:8px;padding-top:8px}
 }
+
+/* Expandable game details preserve the compact scoreboard card. */
+.scoreboard-game-summary{cursor:pointer;list-style:none;border-radius:6px}
+.scoreboard-game-summary::-webkit-details-marker{display:none}
+.scoreboard-game-summary:focus-visible{outline:2px solid var(--cf-gold-light);outline-offset:5px}
+.scoreboard-details-hint{display:block;margin-top:10px;font-size:12px;color:var(--cf-gold-light);text-align:right}
+.scoreboard-details-panel{border-top:1px solid var(--cf-border);margin-top:12px;padding-top:12px;font-size:14px}
+.scoreboard-detail-status{color:var(--cf-gold-light);font-weight:700;margin:0 0 12px}
+.scoreboard-situation{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0}
+.scoreboard-situation div{min-width:0;background:var(--cf-surface-2);border-radius:7px;padding:10px}
+.scoreboard-situation dt{font-size:11px;color:var(--cf-muted);margin-bottom:6px}
+.scoreboard-situation dd{margin:0;font-weight:700;overflow-wrap:anywhere}
+.scoreboard-last-play{margin-top:14px;line-height:1.5}
+.scoreboard-last-play strong{color:var(--cf-gold-light)}
+.scoreboard-last-play p{margin:6px 0}
+.scoreboard-details-updated{font-size:11px;line-height:1.5}
+.scoreboard-espn-link{display:inline-flex;align-items:center;min-height:44px;padding:8px 0;font-weight:700}
+@media(max-width:400px){.scoreboard-situation{gap:6px}.scoreboard-situation div{padding:8px 6px}.scoreboard-situation dd{font-size:12px}}

@@ -1,5 +1,6 @@
 import {requireUser} from '@/lib/auth';
 import LiveRefresh from './LiveRefresh';
+import GameDetails from './GameDetails';
 
 export default async function Scoreboard(){
  const {supabase,user}=await requireUser();
@@ -7,7 +8,7 @@ export default async function Scoreboard(){
  if(!m)return <main className="container"><h1>Live Scoreboard</h1><p className="muted">You are not attached to a league.</p></main>;
  const {data:week}=await supabase.from('weeks').select('id,week_number').eq('league_id',m.league_id).in('status',['OPEN','LOCKED','SCORING','COMPLETE']).order('week_number',{ascending:false}).limit(1).single();
  if(!week)return <main className="container"><h1>Live Scoreboard</h1><p className="muted">No published week yet.</p></main>;
- const {data:games}=await supabase.from('games').select('id,game_number,away_team_id,home_team_id,away_team,home_team,kickoff_at,network,favorite_team_name,favorite_points,underdog_points,status,away_score,home_score,period,clock,status_detail,last_synced_at').eq('week_id',week.id).order('game_number');
+ const {data:games}=await supabase.from('games').select('id,espn_event_id,game_number,away_team_id,home_team_id,away_team,home_team,kickoff_at,network,favorite_team_name,favorite_points,underdog_points,status,away_score,home_score,period,clock,status_detail,last_synced_at').eq('week_id',week.id).order('game_number');
  const gameIds=(games??[]).map((g:any)=>g.id);
  const {data:picks}=gameIds.length?await supabase.from('picks').select('game_id,selected_team_id').eq('player_id',user.id).in('game_id',gameIds):{data:[] as any[]};
  const {data:hp}=await supabase.from('historical_players').select('id').eq('league_id',m.league_id).eq('user_id',user.id).maybeSingle();
@@ -67,12 +68,14 @@ export default async function Scoreboard(){
   const pickedLost=g.status==='FINAL'&&!!pick&&!pickedWon;
   const pickLabel=!pick?'No pick submitted':pickedWon?`Your pick won · +${pickPts.toFixed(1)} pts`:pickedLost?'Your pick lost':`Potential +${pickPts.toFixed(1)} pts`;
   return <article className="card scoreboard-game" key={g.id}>
+   <GameDetails gameId={g.id} eventId={g.espn_event_id?String(g.espn_event_id):null}>
    <div className="scoreboard-game-header"><strong>Game {g.game_number}</strong><span className="badge">{isLive&&<strong style={{color:'#b7f7bf'}}>● LIVE · </strong>}{detail}</span></div>
    <div className="scoreboard-teams">
     <div className={pickedAway?'scoreboard-team is-picked':'scoreboard-team'}><span className="scoreboard-team-name">{pickedAway&&<span aria-label="Your pick">★ </span>}{g.away_team}</span><strong className="scoreboard-team-score">{showScore?(g.away_score??'—'):'—'}</strong><span className="scoreboard-team-points">{awayPts.toFixed(1)} pts</span></div>
     <div className={pickedHome?'scoreboard-team is-picked':'scoreboard-team'}><span className="scoreboard-team-name">{pickedHome&&<span aria-label="Your pick">★ </span>}{g.home_team}</span><strong className="scoreboard-team-score">{showScore?(g.home_score??'—'):'—'}</strong><span className="scoreboard-team-points">{homePts.toFixed(1)} pts</span></div>
    </div>
    <div className="scoreboard-game-footer"><strong className={pickedLost?'scoreboard-pick-lost':'scoreboard-pick-status'}>{pickLabel}</strong><span>{g.network||'Network TBD'}</span></div>
+   </GameDetails>
   </article>;
  })}</div></main>;
 }
