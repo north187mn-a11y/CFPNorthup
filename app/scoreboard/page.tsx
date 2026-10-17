@@ -51,7 +51,7 @@ export default async function Scoreboard(){
   <div className="card" style={{textAlign:'center'}}><div className="muted">WTD Total</div><div style={{fontSize:'2rem',fontWeight:700}}>{wtdEarned.toFixed(1)}</div><div className="muted">earned this week</div></div>
   <div className="card" style={{textAlign:'center'}}><div className="muted">Max This Week</div><div style={{fontSize:'2rem',fontWeight:700}}>{wtdPotential.toFixed(1)}</div><div className="muted">if remaining picks win</div></div>
  </div>
- <div className="grid" style={{marginTop:16}}>{[...(games??[])].sort((a:any,b:any)=>{const kickoff=(g:any)=>{const time=g.kickoff_at?Date.parse(g.kickoff_at):NaN;return Number.isFinite(time)?time:Infinity};return kickoff(a)-kickoff(b)||a.game_number-b.game_number}).map((g:any)=>{
+ <div className="grid" style={{marginTop:16}}>{[...(games??[])].sort((a:any,b:any)=>{const kickoff=(g:any)=>{const time=g.kickoff_at?Date.parse(g.kickoff_at):NaN;return Number.isFinite(time)?time:Infinity};const priority=(g:any)=>g.status==='IN_PROGRESS'?0:g.status==='FINAL'?2:1;return priority(a)-priority(b)||kickoff(a)-kickoff(b)||a.game_number-b.game_number}).map((g:any)=>{
   const favAway=g.favorite_team_name===g.away_team;
   const awayPts=favAway?Number(g.favorite_points):Number(g.underdog_points);
   const homePts=favAway?Number(g.underdog_points):Number(g.favorite_points);
