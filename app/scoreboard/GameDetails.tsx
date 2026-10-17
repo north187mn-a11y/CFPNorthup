@@ -37,6 +37,7 @@ export default function GameDetails({gameId,eventId,children}:{gameId:string|num
      <div><dt>Down & distance</dt><dd>{data.downDistance||'—'}</dd></div>
      <div><dt>Ball on</dt><dd>{data.fieldPosition||'—'}</dd></div>
     </dl>
+    {data.situationNote&&<p className="muted scoreboard-details-updated">{data.situationNote}</p>}
     {!data.possession&&!data.downDistance&&!data.fieldPosition&&<p className="muted">Live situation will appear here when available.</p>}
     <div className="scoreboard-last-play"><strong>Latest play{data.lastPlayTime?` · ${data.lastPlayTime}`:''}</strong><p>{data.lastPlay||'No play details available yet.'}</p></div>
     <p className="muted scoreboard-details-updated">Loaded {new Date(data.fetchedAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})} · Updates every minute while open</p>
