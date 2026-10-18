@@ -7,6 +7,16 @@ export default async function LeagueSupport(){
  if(!membership)return <main className="container"><h1>League Support</h1><p className="muted">No league found.</p></main>;
  const leagueId=membership.league_id;
 
+ const {data:league}=await supabase.from('leagues').select('commissioner_id').eq('id',leagueId).single();
+ const {data:members,error:membersError}=await supabase.from('league_members').select('user_id').eq('league_id',leagueId);
+ if(membersError)throw new Error('Unable to load league players.');
+ const playerIds=(members??[]).map(m=>m.user_id).filter(id=>id!==league?.commissioner_id);
+ const {data:players,error:playersError}=playerIds.length
+  ?await supabase.from('profiles').select('id,full_name').in('id',playerIds).order('full_name')
+  :{data:[],error:null};
+ if(playersError)throw new Error('Unable to load player names.');
+
+
  async function addContribution(formData:FormData){
   'use server';
   const {supabase,user}=await requireCommissioner();
@@ -39,7 +49,7 @@ export default async function LeagueSupport(){
   <div className="page-head"><div><h1>League Support</h1><p className="muted">Commissioner-only tracking for voluntary league contributions.</p></div></div>
   <div className="card"><h2>Total Support: ${total.toFixed(2)}</h2>
    <form action={addContribution} style={{display:'flex',gap:10,flexWrap:'wrap',alignItems:'end'}}>
-    <label>Name<br/><input name="name" required placeholder="Contributor"/></label>
+    <label>Contributor Name<br/><select name="name" required defaultValue=""><option value="" disabled>Select a player</option>{(players??[]).map(player=><option key={player.id} value={player.full_name}>{player.full_name}</option>)}</select></label>
     <label>Amount<br/><input name="amount" type="number" min="0" step="0.01" required placeholder="0.00"/></label>
     <label>Date<br/><input name="date" type="date" required defaultValue={new Date().toISOString().slice(0,10)}/></label>
     <label>Note<br/><input name="note" placeholder="Optional"/></label>
