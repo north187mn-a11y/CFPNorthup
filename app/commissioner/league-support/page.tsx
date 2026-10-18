@@ -42,7 +42,9 @@ export default async function LeagueSupport(){
   revalidatePath('/commissioner/league-support');
  }
 
- const {data:rows}=await supabase.from('league_support_contributions').select('id,contributor_name,amount,contribution_date,note').eq('league_id',leagueId).order('contribution_date',{ascending:false}).order('id',{ascending:false});
+ const {data:rows,error:contributionsError}=await supabase.from('league_support_contributions').select('id,contributor_name,amount,contribution_date,note').eq('league_id',leagueId).order('contribution_date',{ascending:false}).order('id',{ascending:false});
+ if(contributionsError)throw new Error('Unable to load contributions.');
+ const playerTotals=(players??[]).map(player=>({...player,total:(rows??[]).filter(row=>row.contributor_name.trim().toLowerCase()===player.full_name.trim().toLowerCase()).reduce((sum,row)=>sum+Number(row.amount),0)}));
  const total=(rows??[]).reduce((s:number,r:any)=>s+Number(r.amount),0);
 
  return <main className="container">
@@ -56,6 +58,14 @@ export default async function LeagueSupport(){
     <button type="submit">Add Contribution</button>
    </form>
   </div>
+  <section className="card" style={{marginTop:16,overflowX:'auto'}} aria-labelledby="player-contributions-heading">
+   <h2 id="player-contributions-heading">Player Contributions</h2>
+   <p className="muted">{playerTotals.length} players · {playerTotals.filter(player=>player.total>0).length} contributors</p>
+   <table><thead><tr><th scope="col">Player</th><th scope="col" style={{textAlign:'right'}}>Total Contributed</th></tr></thead>
+    <tbody>{playerTotals.map(player=><tr key={player.id}><th scope="row" style={{textAlign:'left'}}>{player.full_name}</th><td style={{textAlign:'right',whiteSpace:'nowrap',fontVariantNumeric:'tabular-nums'}}>{player.total.toLocaleString('en-US',{style:'currency',currency:'USD'})}</td></tr>)}</tbody>
+    <tfoot><tr><th scope="row" style={{textAlign:'left'}}>Total</th><td style={{textAlign:'right',fontWeight:700}}>{playerTotals.reduce((sum,player)=>sum+player.total,0).toLocaleString('en-US',{style:'currency',currency:'USD'})}</td></tr></tfoot>
+   </table>
+  </section>
   <div className="card" style={{marginTop:16,overflowX:'auto'}}><h2>Contribution History</h2>
    {(rows??[]).length?<table><thead><tr><th>Date</th><th>Contributor</th><th>Amount</th><th>Note</th><th></th></tr></thead>
    <tbody>{(rows??[]).map((r:any)=><tr key={r.id}><td style={{whiteSpace:'nowrap'}}>{r.contribution_date}</td><td style={{whiteSpace:'nowrap'}}>{r.contributor_name}</td><td>${Number(r.amount).toFixed(2)}</td><td>{r.note??'—'}</td><td><form action={removeContribution}><input type="hidden" name="id" value={r.id}/><button type="submit">Delete</button></form></td></tr>)}</tbody></table>:<p className="muted">No contributions recorded yet.</p>}
