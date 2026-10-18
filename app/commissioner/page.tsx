@@ -28,7 +28,7 @@ export default async function Commissioner() {
       <div className="card"><div className="muted">Weeks Created</div><div className="stat">{weeks?.length ?? 0}</div></div>
       <div className="card"><div className="muted">Season</div><div className="stat">{league.season}</div></div>
     </div>
-    <div style={{marginTop:16}}><Link href="/commissioner/corrections"><button>Game Corrections</button></Link></div>
+    <div style={{marginTop:16,display:'flex',gap:12,flexWrap:'wrap'}}><Link href="/commissioner/corrections"><button>Game Corrections</button></Link><Link href="/commissioner/league-support" className="card link-card"><strong>League Support →</strong><p className="muted">Record contributions and view payment history and total collected.</p></Link></div>
     {currentWeek && <div className="card" style={{marginTop:16,overflowX:'auto'}}>
       <h2>Week {currentWeek.week_number} — Pick Submission Status</h2>
       <p className="muted">Completed: {completedCount} · Incomplete: {incompleteCount} · Not started: {notStartedCount} · Remaining: {submissionRows.length-completedCount}</p>
