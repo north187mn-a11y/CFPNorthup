@@ -68,7 +68,7 @@ export default async function Scoreboard(){
   const pickedLost=g.status==='FINAL'&&!!pick&&!pickedWon;
   const pickLabel=!pick?'No pick submitted':pickedWon?`Your pick won · +${pickPts.toFixed(1)} pts`:pickedLost?'Your pick lost':`Potential +${pickPts.toFixed(1)} pts`;
   return <article className="card scoreboard-game" key={g.id}>
-   <GameDetails gameId={g.id} eventId={g.espn_event_id?String(g.espn_event_id):null}>
+   <GameDetails updatedAt={g.last_synced_at} gameId={g.id} eventId={g.espn_event_id?String(g.espn_event_id):null}>
    <div className="scoreboard-game-header"><strong>Game {g.game_number}</strong><span className="badge">{isLive&&<strong style={{color:'#b7f7bf'}}>● LIVE · </strong>}{detail}</span></div>
    <div className="scoreboard-teams">
     <div className={pickedAway?'scoreboard-team is-picked':'scoreboard-team'}><span className="scoreboard-team-name">{pickedAway&&<span aria-label="Your pick">★ </span>}{g.away_team}</span><strong className="scoreboard-team-score">{showScore?(g.away_score??'—'):'—'}</strong><span className="scoreboard-team-points">{awayPts.toFixed(1)} pts</span></div>

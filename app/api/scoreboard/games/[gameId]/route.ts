@@ -15,7 +15,7 @@ export async function GET(_req:Request,{params}:{params:Promise<{gameId:string}>
  const eventId=String(game.espn_event_id??'');
  if(!/^\d+$/.test(eventId))return NextResponse.json({error:'ESPN details are not available for this game yet.'},{status:404});
  try {
-  const response=await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event=${eventId}`,{next:{revalidate:30},signal:AbortSignal.timeout(10000)});
+  const response=await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event=${eventId}`,{cache:'no-store',signal:AbortSignal.timeout(10000)});
   if(!response.ok)throw new Error('ESPN unavailable');
   const json=await response.json();
   const competition=json.header?.competitions?.[0];
@@ -25,7 +25,7 @@ export async function GET(_req:Request,{params}:{params:Promise<{gameId:string}>
   if(!situation&&competition.status?.type?.state==='in'&&game.kickoff_at) {
    try {
     const date=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(game.kickoff_at)).replace(/(\d{2})\/(\d{2})\/(\d{4})/,'$3$1$2');
-    const scores=await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${date}&groups=80&limit=100`,{next:{revalidate:30},signal:AbortSignal.timeout(5000)});
+    const scores=await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${date}&groups=80&limit=100`,{cache:'no-store',signal:AbortSignal.timeout(5000)});
     if(scores.ok){const board=await scores.json();situation=board.events?.find((e:any)=>String(e.id)===eventId)?.competitions?.[0]?.situation;}
    }catch{/* Keep the summary available if the situation feed is temporarily unavailable. */}
   }

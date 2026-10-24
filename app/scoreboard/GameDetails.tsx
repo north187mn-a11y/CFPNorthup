@@ -2,7 +2,7 @@
 import {useEffect,useState,type ReactNode} from 'react';
 import type {GameDetails as Details} from '@/lib/espn-details';
 
-export default function GameDetails({gameId,eventId,children}:{gameId:string|number;eventId:string|null;children:ReactNode}) {
+export default function GameDetails({gameId,eventId,updatedAt,children}:{gameId:string|number;eventId:string|null;updatedAt?:string|null;children:ReactNode}) {
  const [open,setOpen]=useState(false);
  const [data,setData]=useState<Details|null>(null);
  const [error,setError]=useState('');
@@ -14,7 +14,7 @@ export default function GameDetails({gameId,eventId,children}:{gameId:string|num
   const controller=new AbortController();
   const load=async()=>{
    try {
-    const response=await fetch(`/api/scoreboard/games/${gameId}`,{cache:'no-store',signal:controller.signal});
+    const response=await fetch(`/api/scoreboard/games/${gameId}`,{cache:'no-store',signal:AbortSignal.any([controller.signal,AbortSignal.timeout(15000)])});
     const result=await response.json();
     if(!response.ok)throw new Error(result.error||'Could not load game details.');
     if(active){setData(result);setError('');}
@@ -23,7 +23,7 @@ export default function GameDetails({gameId,eventId,children}:{gameId:string|num
   };
   load();
   return()=>{active=false;controller.abort();clearTimeout(timer);};
- },[open,gameId,retry]);
+ },[open,gameId,retry,updatedAt]);
  const sourceUrl=eventId&&/^\d+$/.test(eventId)?`https://www.espn.com/college-football/game/_/gameId/${eventId}`:null;
  return <details className="scoreboard-expandable" onToggle={e=>setOpen(e.currentTarget.open)}>
   <summary className="scoreboard-game-summary">{children}<span className="scoreboard-details-hint">{open?'Close game details ▴':'Game details ▾'}</span></summary>
