@@ -92,7 +92,6 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
    const aw=a.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??0,bw=b.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??0;
    return lastWeek.week_number===7?b.ytd-a.ytd:(bw-aw)||(b.ytd-a.ytd);
  }):[];
- const consolation=postCut?officialRows.filter((r:any)=>r.status==='ELIMINATED').map((r:any)=>({...r,last:r.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??0})).sort((a:any,b:any)=>b.last-a.last||b.ytd-a.ytd):[];
 
 
  const cutCount=rankingWeek&&rankingWeek.week_number>=8&&rankingWeek.week_number<=13
@@ -111,6 +110,14 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
   ?!!r.user_id&&finalCutIds.includes(r.user_id)
   :i>=cutIndex||cutTied&&weeklyPoints(r)===weeklyPoints(cutBoundary)&&r.ytd===cutBoundary.ytd;
  const firstBelowCut=activeStandings.findIndex(belowCut);
+ // Players cut this week competed as survivors; consolation starts the next week.
+ const consolationStandings=rows.filter((r:any)=>r.status==='ELIMINATED'&&!(r.user_id&&finalCutIds.includes(r.user_id)))
+  .sort((a:any,b:any)=>weeklyPoints(b)-weeklyPoints(a)||b.ytd-a.ytd||a.name.localeCompare(b.name));
+ const consolationLead=consolationStandings.length?weeklyPoints(consolationStandings[0]):null;
+ const isConsolationLeader=(r:any)=>consolationLead!==null&&Math.abs(weeklyPoints(r)-consolationLead)<0.000001;
+ const consolationLeaderCount=consolationStandings.filter(isConsolationLeader).length;
+ const leaderLabel=projectionReady?'Projected Weekly Leader':cutFinal?'Weekly Winner':'Weekly Leader';
+
 
  return <main className="container"><h1>Standings</h1><p className="muted">Season totals and weekly scores.</p>
  {rankingWeek&&rankingWeek.status!=='COMPLETE'&&<div className="card" style={{marginBottom:16}}>
@@ -124,27 +131,43 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
  </div>}
  {projectionReady&&<p role="status"><strong>Unofficial projected standings — Week {rankingWeek!.week_number}</strong>. Weekly scores, YTD totals, rankings, and the cut line below assume current leaders win. Refresh for updated game scores.</p>}
 
- {rankingWeek&&cutCount>0&&activeStandings.length>0&&<div className="card" style={{overflowX:'auto',marginBottom:16}}>
-  <h2>Week {rankingWeek.week_number} Survivor Standings</h2>
-  <p className="muted">{cutFinal?'Final cut':'Projected cut'}: {cutCount} {cutCount===1?'player':'players'}. Ranked by weekly score, with YTD as the tiebreaker.</p>
+ {rankingWeek&&rankingWeek.week_number>=8&&(activeStandings.length>0||consolationStandings.length>0)&&<div className="card" style={{overflowX:'auto',marginBottom:16}}>
+  <h2>Week {rankingWeek.week_number} Standings</h2>
+  <p className="muted">Survivors and consolation players are ranked separately by weekly score. Survivor ties use YTD.{cutCount>0&&<> {cutFinal?'Final cut':'Projected cut'}: {cutCount} {cutCount===1?'player':'players'}.</>}</p>
   {cutTied&&<p role="status">Tie at the cut line: weekly score and YTD are equal. The highlighted tied players need a tiebreaker before the cut is final.</p>}
-  <table><thead><tr><th>Rank</th><th>Player</th><th>Week {rankingWeek.week_number}</th><th>YTD</th><th>Cut Status</th></tr></thead>
-   <tbody>{activeStandings.map((r:any,i:number)=>{
-    const atRisk=belowCut(r,i);
+  <table><thead><tr><th>Rank</th><th>Player</th><th>Week {rankingWeek.week_number}</th><th>YTD</th><th>Status</th></tr></thead>
+   <tbody><tr><th colSpan={5} scope="rowgroup" style={{textAlign:'left'}}>Survivor Competition</th></tr>{activeStandings.map((r:any,i:number)=>{
+    const atRisk=cutCount>0&&belowCut(r,i);
     return <Fragment key={r.historical_id}>
-     {i===firstBelowCut&&<tr><td colSpan={5} style={{borderTop:'3px solid #b91c1c',color:'#991b1b',fontWeight:700}}>{cutFinal?'Final cut':cutTied?'Projected cut — tied at boundary':'Projected cut'}</td></tr>}
+     {cutCount>0&&i===firstBelowCut&&<tr><td colSpan={5} style={{borderTop:'3px solid #b91c1c',color:'#991b1b',fontWeight:700}}>{cutFinal?'Final cut':cutTied?'Projected cut — tied at boundary':'Projected cut'}</td></tr>}
      <tr style={atRisk?{backgroundColor:'#fef2f2',color:'#991b1b'}:undefined}>
       <td>{i+1}</td><td>{r.name}</td><td><strong>{weeklyPoints(r).toFixed(1)}</strong></td><td>{r.ytd.toFixed(1)}</td>
-      <td>{atRisk?(cutFinal?'ELIMINATED':cutTied&&weeklyPoints(r)===weeklyPoints(cutBoundary)&&r.ytd===cutBoundary.ytd?'Tied at cut':'Currently below cut'):(cutFinal?'SAFE':'Currently above cut')}</td>
+      <td>{cutCount===0?r.status:atRisk?(cutFinal?'ELIMINATED':cutTied&&weeklyPoints(r)===weeklyPoints(cutBoundary)&&r.ytd===cutBoundary.ytd?'Tied at cut':'Currently below cut'):(cutFinal?'SAFE':'Currently above cut')}</td>
      </tr>
     </Fragment>;
    })}</tbody>
+   {consolationStandings.length>0&&<tbody>
+    <tr><th colSpan={5} scope="colgroup" style={{borderTop:'4px solid #64748b',paddingTop:20,textAlign:'left'}}>
+     Consolation — Previously Eliminated Players
+     <div className="muted" style={{fontWeight:400}}>Separate weekly competition. Gold highlights the {consolationLeaderCount>1?'tied leaders':'leader'}.</div>
+    </th></tr>
+    {consolationStandings.map((r:any)=>{
+     const leader=isConsolationLeader(r);
+     const rank=1+consolationStandings.filter((p:any)=>weeklyPoints(p)>weeklyPoints(r)+0.000001).length;
+     return <tr key={r.historical_id} style={leader?{backgroundColor:'#fef3c7',color:'#78350f'}:undefined}>
+      <td>{rank}</td><td>{r.name}</td><td><strong>{weeklyPoints(r).toFixed(1)}</strong></td><td>{r.ytd.toFixed(1)}</td>
+      <td>{leader?<strong>{consolationLeaderCount>1?'Tied — ':''}{leaderLabel}</strong>:'Consolation'}</td>
+     </tr>;
+    })}
+   </tbody>}
   </table>
  </div>}
 
+ <details open={!rankByWeek} style={{marginTop:16}}><summary>Season totals and previous results</summary>
  <div className="card" style={{overflowX:'auto'}}><h2>Overall Standings</h2><p className="muted">{rankByWeek?`Ranked by Week ${rankingWeek.week_number} score, with YTD as the tiebreaker.`:'Ranked by YTD score.'}</p>{rows.length?<table><thead><tr><th style={{width:1,whiteSpace:'nowrap'}}></th><th style={{whiteSpace:'nowrap',minWidth:'max-content'}}>Player</th><th>YTD</th>{[...(weeks??[])].reverse().map((w:any)=><th key={w.id}>W{w.week_number}</th>)}<th>Survivor Status</th></tr></thead><tbody>{rows.map((r:any,i:number)=><tr key={r.historical_id}><td style={{width:1,whiteSpace:'nowrap'}}>{i+1}</td><td style={{whiteSpace:'nowrap',minWidth:'max-content'}}>{r.name}</td><td><strong>{r.ytd.toFixed(1)}</strong></td>{[...(weeks??[])].reverse().map((w:any)=><td key={w.id}>{(r.ps.find((s:any)=>s.week_id===w.id)?.points??0).toFixed(1)}</td>)}<td>{r.status}</td></tr>)}</tbody></table>:<p className="muted">Standings will appear when league scores are loaded.</p>}</div>
 
  {postCut&&<><div className="card" style={{marginTop:16,overflowX:'auto'}}><h2>Week {lastWeek.week_number} Survivor Results</h2><p className="muted">{lastWeek.week_number===7?'Cut based on YTD score.':'Cut based on weekly score, with YTD as the tiebreaker.'}</p><table><thead><tr><th>Rank</th><th>Player</th><th>Week {lastWeek.week_number}</th><th>YTD</th><th>Result</th></tr></thead><tbody>{survivorResults.map((r:any,i:number)=><tr key={r.historical_id}><td>{i+1}</td><td>{r.name}</td><td>{r.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??'—'}</td><td>{r.ytd.toFixed(1)}</td><td><strong>{r.user_id&&eliminatedIds.includes(r.user_id)?'ELIMINATED':'SAFE'}</strong></td></tr>)}</tbody></table></div>
- {lastWeek.week_number>=8&&<div className="card" style={{marginTop:16,overflowX:'auto'}}><h2>Week {lastWeek.week_number} Consolation</h2><p className="muted">Weekly competition for players eliminated from Survivor.</p>{consolation.length?<table><thead><tr><th>Rank</th><th>Player</th><th>Weekly Score</th><th>YTD</th></tr></thead><tbody>{consolation.map((r:any,i:number)=><tr key={r.historical_id}><td>{i+1}</td><td>{r.name}{i===0?' — Weekly Winner':''}</td><td><strong>{r.last.toFixed(1)}</strong></td><td>{r.ytd.toFixed(1)}</td></tr>)}</tbody></table>:<p className="muted">Consolation results will appear after eliminated players complete the next week.</p>}</div>}</>}
+ </>}
+ </details>
  </main>;
 }
