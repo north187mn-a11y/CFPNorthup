@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import {requireUser} from '@/lib/auth';
 
-export default async function Standings(){
+export default async function Standings({searchParams}:{searchParams:Promise<{projected?:string}>}){
+ const params=await searchParams;
  const {supabase,user}=await requireUser();
  const {data:m}=await supabase.from('league_members').select('league_id').eq('user_id',user.id).limit(1).single();
  if(!m)return <main className="container"><h1>Standings</h1><p className="muted">You are not attached to a league.</p></main>;
@@ -31,8 +32,24 @@ export default async function Standings(){
  };
 
  const rankingWeek=[...(weeks??[])].reverse().find((w:any)=>['OPEN','LOCKED','SCORING','COMPLETE'].includes(w.status));
+ const projected=params.projected==='1'&&!!rankingWeek&&rankingWeek.status!=='COMPLETE';
+ const {data:projectionGames,error:gamesError}=projected?await supabase.from('games').select('id,game_number,away_team_id,home_team_id,away_team,home_team,favorite_team_name,favorite_points,underdog_points,status,away_score,home_score').eq('week_id',rankingWeek!.id):{data:[],error:null};
+ const projectionGameIds=(projectionGames??[]).map((g:any)=>g.id);
+ const {data:projectionPicks,error:picksError}=projected&&projectionGameIds.length?await supabase.from('picks').select('player_id,game_id,selected_team_id').in('game_id',projectionGameIds):{data:[],error:null};
+ const {data:projectionHistoricalPicks,error:historicalPicksError}=projected&&historicalIds.length?await supabase.from('historical_picks').select('historical_player_id,game_number,selected_team_name').eq('week_id',rankingWeek!.id).in('historical_player_id',historicalIds):{data:[],error:null};
+ const projectionReady=projected&&!gamesError&&!picksError&&!historicalPicksError&&projectionGameIds.length>0;
+ const projectedPoints=(hp:any)=>(projectionGames??[]).reduce((sum:number,g:any)=>{
+  if(!['FINAL','IN_PROGRESS'].includes(g.status)||g.away_score==null||g.home_score==null||Number(g.away_score)===Number(g.home_score))return sum;
+  const awayWins=Number(g.away_score)>Number(g.home_score);
+  const winner=awayWins?g.away_team:g.home_team;
+  const winnerId=awayWins?g.away_team_id:g.home_team_id;
+  const livePick=hp.user_id?(projectionPicks??[]).find((p:any)=>p.player_id===hp.user_id&&p.game_id===g.id):undefined;
+  const historicalPick=(projectionHistoricalPicks??[]).find((p:any)=>p.historical_player_id===hp.historical_id&&p.game_number===g.game_number);
+  const won=livePick?livePick.selected_team_id===winnerId:historicalPick?.selected_team_name===winner;
+  return sum+(won?Number(winner===g.favorite_team_name?g.favorite_points:g.underdog_points):0);
+ },0);
  const rankByWeek=!!rankingWeek&&rankingWeek.week_number>=8;
- const rows=(historicalPlayers??[]).map((hp:any)=>{
+ const officialRows=(historicalPlayers??[]).map((hp:any)=>{
   const member=hp.user_id?(members??[]).find((x:any)=>x.user_id===hp.user_id):undefined;
   const profile=hp.user_id?(profiles??[]).find((p:any)=>p.id===hp.user_id):undefined;
   const ps=(weeks??[]).map((w:any)=>{
@@ -56,16 +73,26 @@ export default async function Standings(){
   return weeklyDifference||b.ytd-a.ytd||a.name.localeCompare(b.name);
  });
 
+ // Substitute the current week only; never persist simulated scores.
+ const rows=projectionReady?officialRows.map((r:any)=>{
+  const points=projectedPoints(r);
+  const previous=r.ps.find((p:any)=>p.week_id===rankingWeek!.id)?.points??0;
+  return {...r,ytd:r.ytd-previous+points,ps:[...r.ps.filter((p:any)=>p.week_id!==rankingWeek!.id),{week_id:rankingWeek!.id,week_number:rankingWeek!.week_number,points}]};
+ }).sort((a:any,b:any)=>{
+  const weeklyDifference=rankByWeek?(b.ps.find((p:any)=>p.week_id===rankingWeek!.id)?.points??0)-(a.ps.find((p:any)=>p.week_id===rankingWeek!.id)?.points??0):0;
+  return weeklyDifference||b.ytd-a.ytd||a.name.localeCompare(b.name);
+ }):officialRows;
+
  const completed=(weeks??[]).filter((w:any)=>w.status==='COMPLETE');
  const lastWeek=completed.length?completed[completed.length-1]:null;
  const postCut=!!lastWeek&&lastWeek.week_number>=7;
  const {data:eliminations}=postCut?await supabase.from('eliminations').select('player_id').eq('league_id',m.league_id).eq('week_id',lastWeek.id):{data:[] as any[]};
  const eliminatedIds=(eliminations??[]).map((e:any)=>e.player_id);
- const survivorResults=postCut?[...rows].sort((a:any,b:any)=>{
+ const survivorResults=postCut?[...officialRows].sort((a:any,b:any)=>{
    const aw=a.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??0,bw=b.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??0;
    return lastWeek.week_number===7?b.ytd-a.ytd:(bw-aw)||(b.ytd-a.ytd);
  }):[];
- const consolation=postCut?rows.filter((r:any)=>r.status==='ELIMINATED').map((r:any)=>({...r,last:r.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??0})).sort((a:any,b:any)=>b.last-a.last||b.ytd-a.ytd):[];
+ const consolation=postCut?officialRows.filter((r:any)=>r.status==='ELIMINATED').map((r:any)=>({...r,last:r.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??0})).sort((a:any,b:any)=>b.last-a.last||b.ytd-a.ytd):[];
 
 
  const cutCount=rankingWeek&&rankingWeek.week_number>=8&&rankingWeek.week_number<=13
@@ -86,6 +113,16 @@ export default async function Standings(){
  const firstBelowCut=activeStandings.findIndex(belowCut);
 
  return <main className="container"><h1>Standings</h1><p className="muted">Season totals and weekly scores.</p>
+ {rankingWeek&&rankingWeek.status!=='COMPLETE'&&<div className="card" style={{marginBottom:16}}>
+  <form action="/standings" method="get">
+   <button type="submit" role="switch" aria-checked={projected} name="projected" value={projected?'0':'1'} aria-describedby="projection-note">
+    Show projected standings: {projected?'ON':'OFF'}
+   </button>
+  </form>
+  <p id="projection-note" className="muted">{projectionReady?'UNOFFICIAL — ':''}Treats current game leaders as winners. Tied and unstarted games are unscored. Official results and eliminations are unchanged.</p>
+  {projected&&!projectionReady&&<p role="alert">Projected scores could not be loaded. Showing official standings. Please refresh to try again.</p>}
+ </div>}
+ {projectionReady&&<p role="status"><strong>Unofficial projected standings — Week {rankingWeek!.week_number}</strong>. Weekly scores, YTD totals, rankings, and the cut line below assume current leaders win. Refresh for updated game scores.</p>}
 
  {rankingWeek&&cutCount>0&&activeStandings.length>0&&<div className="card" style={{overflowX:'auto',marginBottom:16}}>
   <h2>Week {rankingWeek.week_number} Survivor Standings</h2>
