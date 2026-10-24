@@ -87,7 +87,7 @@ export default async function Standings(){
 
  return <main className="container"><h1>Standings</h1><p className="muted">Season totals and weekly scores.</p>
 
- {cutCount>0&&activeStandings.length>0&&<div className="card" style={{overflowX:'auto',marginBottom:16}}>
+ {rankingWeek&&cutCount>0&&activeStandings.length>0&&<div className="card" style={{overflowX:'auto',marginBottom:16}}>
   <h2>Week {rankingWeek.week_number} Survivor Standings</h2>
   <p className="muted">{cutFinal?'Final cut':'Projected cut'}: {cutCount} {cutCount===1?'player':'players'}. Ranked by weekly score, with YTD as the tiebreaker.</p>
   {cutTied&&<p role="status">Tie at the cut line: weekly score and YTD are equal. The highlighted tied players need a tiebreaker before the cut is final.</p>}
