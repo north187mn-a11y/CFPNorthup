@@ -83,6 +83,8 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
   return weeklyDifference||b.ytd-a.ytd||a.name.localeCompare(b.name);
  }):officialRows;
 
+ const overallRows=[...rows].sort((a:any,b:any)=>b.ytd-a.ytd||a.name.localeCompare(b.name));
+
  const completed=(weeks??[]).filter((w:any)=>w.status==='COMPLETE');
  const lastWeek=completed.length?completed[completed.length-1]:null;
  const postCut=!!lastWeek&&lastWeek.week_number>=7;
@@ -164,7 +166,7 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
  </div>}
 
  <details open={!rankByWeek} style={{marginTop:16}}><summary>Season totals and previous results</summary>
- <div className="card" style={{overflowX:'auto'}}><h2>Overall Standings</h2><p className="muted">{rankByWeek?`Ranked by Week ${rankingWeek.week_number} score, with YTD as the tiebreaker.`:'Ranked by YTD score.'}</p>{rows.length?<table><thead><tr><th style={{width:1,whiteSpace:'nowrap'}}></th><th style={{whiteSpace:'nowrap',minWidth:'max-content'}}>Player</th><th>YTD</th>{[...(weeks??[])].reverse().map((w:any)=><th key={w.id}>W{w.week_number}</th>)}<th>Survivor Status</th></tr></thead><tbody>{rows.map((r:any,i:number)=><tr key={r.historical_id}><td style={{width:1,whiteSpace:'nowrap'}}>{i+1}</td><td style={{whiteSpace:'nowrap',minWidth:'max-content'}}>{r.name}</td><td><strong>{r.ytd.toFixed(1)}</strong></td>{[...(weeks??[])].reverse().map((w:any)=><td key={w.id}>{(r.ps.find((s:any)=>s.week_id===w.id)?.points??0).toFixed(1)}</td>)}<td>{r.status}</td></tr>)}</tbody></table>:<p className="muted">Standings will appear when league scores are loaded.</p>}</div>
+ <div className="card" style={{overflowX:'auto'}}><h2>Overall Standings</h2><p className="muted">Ranked by YTD score.</p>{overallRows.length?<table><thead><tr><th style={{width:1,whiteSpace:'nowrap'}}></th><th style={{whiteSpace:'nowrap',minWidth:'max-content'}}>Player</th><th>YTD</th>{[...(weeks??[])].reverse().map((w:any)=><th key={w.id}>W{w.week_number}</th>)}<th>Survivor Status</th></tr></thead><tbody>{overallRows.map((r:any,i:number)=><tr key={r.historical_id}><td style={{width:1,whiteSpace:'nowrap'}}>{i+1}</td><td style={{whiteSpace:'nowrap',minWidth:'max-content'}}>{r.name}</td><td><strong>{r.ytd.toFixed(1)}</strong></td>{[...(weeks??[])].reverse().map((w:any)=><td key={w.id}>{(r.ps.find((s:any)=>s.week_id===w.id)?.points??0).toFixed(1)}</td>)}<td>{r.status}</td></tr>)}</tbody></table>:<p className="muted">Standings will appear when league scores are loaded.</p>}</div>
 
  {postCut&&<><div className="card" style={{marginTop:16,overflowX:'auto'}}><h2>Week {lastWeek.week_number} Survivor Results</h2><p className="muted">{lastWeek.week_number===7?'Cut based on YTD score.':'Cut based on weekly score, with YTD as the tiebreaker.'}</p><table><thead><tr><th>Rank</th><th>Player</th><th>Week {lastWeek.week_number}</th><th>YTD</th><th>Result</th></tr></thead><tbody>{survivorResults.map((r:any,i:number)=><tr key={r.historical_id}><td>{i+1}</td><td>{r.name}</td><td>{r.ps.find((p:any)=>p.week_id===lastWeek.id)?.points??'—'}</td><td>{r.ytd.toFixed(1)}</td><td><strong>{r.user_id&&eliminatedIds.includes(r.user_id)?'ELIMINATED':'SAFE'}</strong></td></tr>)}</tbody></table></div>
  </>}
