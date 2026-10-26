@@ -4,14 +4,15 @@ import {fetchESPNSchedule} from '@/lib/espn';
 
 export async function POST(req:Request,{params}:{params:Promise<{weekId:string}>}){
  try{
-  const {weekId}=await params; const {supabase,profile}=await requireCommissioner(); const body=await req.json();
+  const {weekId}=await params; const {supabase}=await requireCommissioner(); const body=await req.json();
   const ids=[...new Set((body.eventIds??[]).map(String))];
   if(ids.length!==15)return NextResponse.json({error:'Select exactly 15 games.'},{status:400});
   const {data:week}=await supabase.from('weeks').select('id,league_id,week_number,week_type,status').eq('id',weekId).single();
   if(!week)return NextResponse.json({error:'Week not found.'},{status:404});
   if(week.status!=='DRAFT')return NextResponse.json({error:'Games can only be selected while the week is a draft.'},{status:409});
-  const {data:league}=await supabase.from('leagues').select('id,season').eq('id',week.league_id).eq('commissioner_id',profile.id).single();
-  if(!league)return NextResponse.json({error:'Not authorized.'},{status:403});
+  const {data:league}=await supabase.from('leagues').select('id,season').eq('id',week.league_id).single();
+  const {data:authorized,error:authError}=await supabase.rpc('can_manage_league',{target_league_id:week.league_id});
+  if(!league||authError||authorized!==true)return NextResponse.json({error:'Not authorized.'},{status:403});
   const {count}=await supabase.from('games').select('id',{count:'exact',head:true}).eq('week_id',week.id);
   if((count??0)>0)return NextResponse.json({error:'This week already has games. Delete the existing games before importing a new slate.'},{status:409});
   const seasonType=week.week_type==='FINAL'?3:2; const schedule=await fetchESPNSchedule(league.season,week.week_number,seasonType);
