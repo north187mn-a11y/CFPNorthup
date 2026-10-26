@@ -5,12 +5,13 @@ import {fetchESPNSchedule} from '@/lib/espn';
 export async function POST(_req:Request,{params}:{params:Promise<{weekId:string}>}){
  try{
   const {weekId}=await params;
-  const {supabase,profile}=await requireCommissioner();
+  const {supabase,user}=await requireCommissioner();
   const {data:week,error:weekError}=await supabase.from('weeks').select('id,league_id,week_number,week_type,status').eq('id',weekId).single();
   if(weekError||!week)return NextResponse.json({error:'Week not found.'},{status:404});
   if(week.status!=='DRAFT')return NextResponse.json({error:'Spreads can only be updated before publication.'},{status:409});
-  const {data:league}=await supabase.from('leagues').select('id,season').eq('id',week.league_id).eq('commissioner_id',profile.id).single();
-  if(!league)return NextResponse.json({error:'Not authorized.'},{status:403});
+  const {data:league}=await supabase.from('leagues').select('id,season').eq('id',week.league_id).single();
+  const {data:membership}=await supabase.from('league_members').select('id').eq('league_id',week.league_id).eq('user_id',user.id).maybeSingle();
+  if(!league||!membership)return NextResponse.json({error:'Not authorized.'},{status:403});
   const {data:games,error:gamesError}=await supabase.from('games').select('id,espn_event_id').eq('week_id',week.id);
   if(gamesError)throw gamesError;
   if(!games?.length)return NextResponse.json({error:'Select games before updating spreads.'},{status:400});
