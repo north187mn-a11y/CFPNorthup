@@ -18,7 +18,11 @@ export default function ApplyWeeklyCutButton({weekId}:{weekId:number}){
   <button disabled={busy} onClick={()=>request(false)}>{busy?'Loading…':'Apply Weekly Cut'}</button>
   {preview&&<div className="card" style={{marginTop:8,padding:12}}>
    <strong>Confirm eliminations</strong>
-   <p className="muted">Lowest weekly scores among active survivors; YTD breaks ties.</p>
+   <p className="muted">
+    Preview only. The players with the lowest weekly scores
+    are eliminated. YTD breaks ties (lower YTD loses).
+    No changes occur until you confirm.
+   </p>
    <ul>{preview.map(p=><li key={p.player_id}>{p.name}: {Number(p.weekly).toFixed(2)} this week · {Number(p.ytd).toFixed(2)} YTD</li>)}</ul>
    <button disabled={busy} onClick={()=>request(true)}>Confirm elimination of {preview.length} player{preview.length===1?'':'s'}</button>{' '}
    <button disabled={busy} onClick={()=>setPreview(null)}>Cancel</button>
