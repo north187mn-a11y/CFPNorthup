@@ -21,7 +21,7 @@ export default async function ManageWeek({params}:{params:Promise<{weekId:string
   const {supabase}=await requireCommissioner();
   const {data:week}=await supabase.from('weeks').select('*').eq('id',weekId).single();
   if(!week)return <main className="container"><h1>Week not found</h1></main>;
-  const {data:games}=await supabase.from('games').select('*').eq('week_id',weekId).order('game_number');
+  const {data:games}=await supabase.from('games').select('*').eq('week_id',weekId).order('kickoff_at',{ascending:true,nullsFirst:false}).order('game_number');
   return <main className="container">
     <div className="page-head"><div><h1>Week {week.week_number}</h1><p className="muted">Status: <span className="badge">{week.status}</span>{week.pick_deadline?` · Deadline: ${new Date(week.pick_deadline).toLocaleString()}`:''}</p></div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}>{week.status==='DRAFT' && (games?.length??0)>0 && <UpdateSpreadsButton weekId={weekId}/>}{week.status==='DRAFT' && <PublishWeekButton weekId={weekId} gameCount={games?.length??0}/>}{(games?.length??0)>0 && <Link href={`/commissioner/weeks/${weekId}/games/new`}><button>+ Add Game</button></Link>}</div></div>
     {week.status==='DRAFT' && (games?.length??0)===0 && <ESPNGameSelector weekId={weekId}/>}\n    <div className="card" style={{marginTop:16}}><h2>Games ({games?.length??0}/15)</h2>
