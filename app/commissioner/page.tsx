@@ -113,6 +113,7 @@ export default async function Commissioner() {
     </section>}
     <InvitePlayerForm />
     <section className="card" style={{marginTop:16}}>
+      <style>{`@media (max-width: 700px) { .commissioner-week-table { display: none; } } @media (min-width: 701px) { .commissioner-week-cards { display: none; } } .commissioner-week-cards { gap: 12px; } .commissioner-week-cards > article { margin-bottom: 12px; }`}</style>
       <h2>Weeks</h2>
       {!weeks?.length ? <p className="muted">No weeks yet. Create the first week to start entering games.</p> : <>
         <div className="commissioner-week-cards">
