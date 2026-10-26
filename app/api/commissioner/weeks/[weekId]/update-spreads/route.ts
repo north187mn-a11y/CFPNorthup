@@ -20,18 +20,9 @@ export async function POST(_req:Request,{params}:{params:Promise<{weekId:string}
   const changes=games.map(g=>({saved:g,latest:schedule.find(s=>s.eventId===g.espn_event_id)}));
   if(changes.some(c=>!c.latest||c.latest.spread===null||!c.latest.favoriteTeamId||!c.latest.underdogTeamId||c.latest.underdogPoints===null))
    return NextResponse.json({error:'One or more games has no current ESPN line. No spreads were updated.'},{status:409});
-  // Recheck draft status immediately before writes.
-  const {data:stillDraft}=await supabase.from('weeks').select('status').eq('id',week.id).single();
-  if(stillDraft?.status!=='DRAFT')return NextResponse.json({error:'Week is no longer a draft.'},{status:409});
-  for(const c of changes){
-   const s=c.latest!;
-   const {error}=await supabase.from('games').update({
-    locked_spread:s.spread,favorite_team_id:s.favoriteTeamId,favorite_team_name:s.favoriteTeam,
-    underdog_team_id:s.underdogTeamId,underdog_team_name:s.underdogTeam,
-    favorite_points:1,underdog_points:s.underdogPoints,last_synced_at:new Date().toISOString()
-   }).eq('id',c.saved.id).eq('week_id',week.id);
-   if(error)throw error;
-  }
-  return NextResponse.json({ok:true,count:changes.length});
+  const payload=changes.map(c=>({id:c.saved.id,locked_spread:c.latest!.spread,favorite_team_id:c.latest!.favoriteTeamId,favorite_team_name:c.latest!.favoriteTeam,underdog_team_id:c.latest!.underdogTeamId,underdog_team_name:c.latest!.underdogTeam,underdog_points:c.latest!.underdogPoints}));
+  const {data:count,error}=await supabase.rpc('update_week_spreads_atomic',{p_week_id:Number(week.id),p_changes:payload});
+  if(error)throw error;
+  return NextResponse.json({ok:true,count});
  }catch(e){return NextResponse.json({error:e instanceof Error?e.message:'Could not update spreads'},{status:400});}
 }
