@@ -8,7 +8,7 @@ export default async function Scoreboard(){
  if(!m)return <main className="container"><h1>Live Scoreboard</h1><p className="muted">You are not attached to a league.</p></main>;
  const {data:week}=await supabase.from('weeks').select('id,week_number').eq('league_id',m.league_id).in('status',['OPEN','LOCKED','SCORING','COMPLETE']).order('week_number',{ascending:false}).limit(1).single();
  if(!week)return <main className="container"><h1>Live Scoreboard</h1><p className="muted">No published week yet.</p></main>;
- const {data:games}=await supabase.from('games').select('id,espn_event_id,game_number,away_team_id,home_team_id,away_team,home_team,kickoff_at,network,favorite_team_name,favorite_points,underdog_points,status,away_score,home_score,period,clock,status_detail,last_synced_at').eq('week_id',week.id).order('game_number');
+ const {data:games}=await supabase.from('games').select('id,espn_event_id,game_number,away_team_id,home_team_id,away_team,home_team,kickoff_at,network,favorite_team_name,favorite_points,underdog_points,status,away_score,home_score,commissioner_override,override_winner_team_id,period,clock,status_detail,last_synced_at').eq('week_id',week.id).order('game_number');
  const gameIds=(games??[]).map((g:any)=>g.id);
  const {data:picks}=gameIds.length?await supabase.from('picks').select('game_id,selected_team_id').eq('player_id',user.id).in('game_id',gameIds):{data:[] as any[]};
  const {data:hp}=await supabase.from('historical_players').select('id').eq('league_id',m.league_id).eq('user_id',user.id).maybeSingle();
@@ -31,7 +31,7 @@ export default async function Scoreboard(){
  const wtdEarned=(games??[]).reduce((sum:number,g:any)=>{
   const pick=(picks??[]).find((p:any)=>p.game_id===g.id)?.selected_team_id;
   if(g.status!=='FINAL'||!pick)return sum;
-  const won=(g.away_score>g.home_score&&pick===g.away_team_id)||(g.home_score>g.away_score&&pick===g.home_team_id);
+  const won=g.commissioner_override?pick===g.override_winner_team_id:(g.away_score>g.home_score&&pick===g.away_team_id)||(g.home_score>g.away_score&&pick===g.home_team_id);
   return sum+(won?pickedPoints(g,pick):0);
  },0);
  const wtdPotential=(games??[]).reduce((sum:number,g:any)=>{
@@ -64,7 +64,7 @@ export default async function Scoreboard(){
   const pick=(picks??[]).find((p:any)=>p.game_id===g.id)?.selected_team_id;
   const pickedAway=pick===g.away_team_id, pickedHome=pick===g.home_team_id;
   const pickPts=pick?pickedPoints(g,pick):0;
-  const pickedWon=g.status==='FINAL'&&((pickedAway&&Number(g.away_score)>Number(g.home_score))||(pickedHome&&Number(g.home_score)>Number(g.away_score)));
+  const pickedWon=g.status==='FINAL'&&(g.commissioner_override?pick===g.override_winner_team_id:((pickedAway&&Number(g.away_score)>Number(g.home_score))||(pickedHome&&Number(g.home_score)>Number(g.away_score))));
   const pickedLost=g.status==='FINAL'&&!!pick&&!pickedWon;
   const pickLabel=!pick?'No pick submitted':pickedWon?`Your pick won · +${pickPts.toFixed(1)} pts`:pickedLost?'Your pick lost':`Potential +${pickPts.toFixed(1)} pts`;
   return <article className="card scoreboard-game" key={g.id}>
