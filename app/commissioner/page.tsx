@@ -22,6 +22,18 @@ export default async function Commissioner() {
   const completedCount = submissionRows.filter(r => totalGames > 0 && r.count >= totalGames).length;
   const incompleteCount = submissionRows.filter(r => r.count > 0 && r.count < totalGames).length;
   const notStartedCount = submissionRows.filter(r => r.count === 0).length;
+  const { data: weekGames } = currentWeek ? await supabase.from('games').select('id,status,winner_team_id,commissioner_override,override_winner_team_id,game_number').eq('week_id',currentWeek.id) : {data: [] as {id:number,status:string,winner_team_id:string|null,commissioner_override:boolean,override_winner_team_id:string|null,game_number:number}[]};
+  const { data: weeklyScores } = currentWeek ? await supabase.from('weekly_scores').select('player_id').eq('week_id',currentWeek.id) : {data: [] as {player_id:string}[]};
+  const finalizedGames = (weekGames ?? []).filter(g => g.status === 'FINAL').length;
+  const missingWinners = (weekGames ?? []).filter(g => g.status === 'FINAL' && !(g.commissioner_override ? g.override_winner_team_id : g.winner_team_id));
+  const gamesReady = totalGames === 15;
+  const scoresExpected = currentWeek?.status === 'COMPLETE';
+  const missingScoreRows = scoresExpected ? playerIds.filter(id => !(weeklyScores ?? []).some(s => s.player_id === id)) : [];
+  const healthIssues = [
+    ...(!gamesReady ? [`Week has ${totalGames}/15 games`] : []),
+    ...missingWinners.map(g => `Game ${g.game_number} is FINAL without a recorded winner`),
+    ...missingScoreRows.length ? [`${missingScoreRows.length} player(s) have no weekly score row`] : [],
+  ];
   return <main className="container">
     <div className="page-head"><div><h1>Commissioner Dashboard</h1><p className="muted">{league.name} · {league.season}</p></div><Link href="/commissioner/weeks/new"><button>+ New Week</button></Link></div>
     <div className="grid grid-3" style={{marginTop:20}}>
@@ -29,6 +41,17 @@ export default async function Commissioner() {
       <div className="card"><div className="muted">Weeks Created</div><div className="stat">{weeks?.length ?? 0}</div></div>
       <div className="card"><div className="muted">Season</div><div className="stat">{league.season}</div></div>
     </div>
+    {currentWeek && <section className="card" style={{marginTop:16}} aria-label="League health">
+      <h2>Week {currentWeek.week_number} — League Health</h2>
+      <p className="muted">Read-only operational checks · {currentWeek.status}</p>
+      <div className="grid grid-3">
+        <div><strong>{totalGames}/15</strong><div className="muted">Games configured</div></div>
+        <div><strong>{finalizedGames}/{totalGames}</strong><div className="muted">Games final</div></div>
+        <div><strong>{(weeklyScores??[]).length}</strong><div className="muted">Weekly score records</div></div>
+      </div>
+      {healthIssues.length ? <div role="status" style={{marginTop:12}}><strong>Items to review</strong><ul>{healthIssues.map(issue=><li key={issue}>{issue}</li>)}</ul></div> : <p role="status" style={{marginTop:12}}>No structural issues detected by these checks. This does not guarantee scoring accuracy.</p>}
+      <p className="muted">Scoring records are required after a week is completed. Open weeks may have none yet.</p>
+    </section>}
     <div style={{marginTop:16,display:'flex',gap:12,flexWrap:'wrap'}}><Link href="/commissioner/corrections"><button>Game Corrections</button></Link><Link href="/commissioner/league-support" className="card link-card"><strong>League Support →</strong><p className="muted">Record contributions and view payment history and total collected.</p></Link></div>
     {currentWeek && <div className="card" style={{marginTop:16,overflowX:'auto'}}>
       <h2>Week {currentWeek.week_number} — Pick Submission Status</h2>
