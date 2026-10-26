@@ -11,6 +11,7 @@ export default async function Scoreboard(){
  const {data:games}=await supabase.from('games').select('id,espn_event_id,game_number,away_team_id,home_team_id,away_team,home_team,kickoff_at,network,favorite_team_name,favorite_points,underdog_points,status,away_score,home_score,commissioner_override,override_winner_team_id,period,clock,status_detail,last_synced_at').eq('week_id',week.id).order('game_number');
  const gameIds=(games??[]).map((g:any)=>g.id);
  const {data:picks}=gameIds.length?await supabase.from('picks').select('game_id,selected_team_id').eq('player_id',user.id).in('game_id',gameIds):{data:[] as any[]};
+ const {data:officialWeekly}=await supabase.from('weekly_scores').select('points').eq('week_id',week.id).eq('player_id',user.id).maybeSingle();
  const {data:hp}=await supabase.from('historical_players').select('id').eq('league_id',m.league_id).eq('user_id',user.id).maybeSingle();
  const {data:priorScores}=hp?await supabase.from('historical_week_scores').select('points,week_id').eq('historical_player_id',hp.id):{data:[] as any[]};
  // Historical weeks 1-4 are stored separately from scored website weeks 5+.
@@ -28,21 +29,13 @@ export default async function Scoreboard(){
   if(pick===g.home_team_id)return favAway?Number(g.underdog_points):Number(g.favorite_points);
   return 0;
  };
- const wtdEarned=(games??[]).reduce((sum:number,g:any)=>{
-  const pick=(picks??[]).find((p:any)=>p.game_id===g.id)?.selected_team_id;
-  if(g.status!=='FINAL'||!pick)return sum;
-  const won=g.commissioner_override?pick===g.override_winner_team_id:(g.away_score>g.home_score&&pick===g.away_team_id)||(g.home_score>g.away_score&&pick===g.home_team_id);
-  return sum+(won?pickedPoints(g,pick):0);
- },0);
+ const wtdEarned=Number(officialWeekly?.points??0);
  const wtdPotential=(games??[]).reduce((sum:number,g:any)=>{
   const pick=(picks??[]).find((p:any)=>p.game_id===g.id)?.selected_team_id;
   if(!pick)return sum;
-  if(g.status==='FINAL'){
-   const won=(g.away_score>g.home_score&&pick===g.away_team_id)||(g.home_score>g.away_score&&pick===g.home_team_id);
-   return sum+(won?pickedPoints(g,pick):0);
-  }
+  if(g.status==='FINAL')return sum;
   return sum+pickedPoints(g,pick);
- },0);
+ },wtdEarned);
  const ytd=priorYtd+wtdEarned;
  const last=(games??[]).map((g:any)=>g.last_synced_at).filter(Boolean).sort().pop();
  return <main className="container"><LiveRefresh weekId={week.id}/><div className="page-head"><div><h1>Week {week.week_number} Scoreboard</h1><p className="muted">The 15 league games only · refreshes from ESPN about every minute{last?` · Last updated ${new Date(last).toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'})}`:''}</p></div></div>
