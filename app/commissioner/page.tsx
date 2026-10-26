@@ -112,8 +112,33 @@ export default async function Commissioner() {
       <p className="muted" style={{marginTop:12}}>Projected standings are unofficial. Finalize the week and use the elimination preview before confirming a cut.</p>
     </section>}
     <InvitePlayerForm />
-    <div className="card" style={{marginTop:16}}><h2>Weeks</h2>
-      {!weeks?.length ? <p className="muted">No weeks yet. Create the first week to start entering games.</p> : <table><thead><tr><th>Week</th><th>Type</th><th>Status</th><th>Deadline</th><th>Finalize</th><th></th></tr></thead><tbody>{weeks.map(w=><tr key={w.id}><td>Week {w.week_number}</td><td>{w.week_type}</td><td><span className="badge">{w.status}</span></td><td>{w.pick_deadline ? new Date(w.pick_deadline).toLocaleString() : '—'}</td><td>{w.status==='COMPLETE'?<div><span className="muted">Final</span>{w.week_number>=8 && w.week_number<=13 && <ApplyWeeklyCutButton weekId={w.id}/>}</div>:<div><MakeFinalButton weekId={w.id} disabled={!finalReadiness.get(w.id)?.ready}/>{!finalReadiness.get(w.id)?.ready&&<div className="muted" style={{fontSize:12,marginTop:4}}>{finalReadiness.get(w.id)?.gameCount??0}/15 games · {finalReadiness.get(w.id)?.remaining??0} not final</div>}</div>}</td><td><Link href={`/commissioner/weeks/${w.id}`}>Manage →</Link></td></tr>)}</tbody></table>}
-    </div>
+    <section className="card" style={{marginTop:16}}>
+      <h2>Weeks</h2>
+      {!weeks?.length ? <p className="muted">No weeks yet. Create the first week to start entering games.</p> : <>
+        <div className="commissioner-week-cards">
+          {[...weeks].reverse().map(w => <article key={w.id} className="card" style={{padding:14}}>
+            <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center'}}>
+              <strong>Week {w.week_number}</strong><span className="badge">{w.status}</span>
+            </div>
+            <p className="muted">{w.week_type} · {w.pick_deadline ? new Date(w.pick_deadline).toLocaleString() : 'No deadline'}</p>
+            <p className="muted">{finalReadiness.get(w.id)?.gameCount??0}/15 games · {finalReadiness.get(w.id)?.remaining??0} unfinished</p>
+            <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:10}}>
+              <Link href={`/commissioner/weeks/${w.id}`}>Manage week</Link>
+              {w.status==='COMPLETE' ? <>{w.week_number>=8 && w.week_number<=13 && <ApplyWeeklyCutButton weekId={w.id}/>}</> : <MakeFinalButton weekId={w.id} disabled={!finalReadiness.get(w.id)?.ready}/>}
+            </div>
+          </article>)}
+        </div>
+        <div className="commissioner-week-table" style={{overflowX:'auto'}}>
+          <table><thead><tr><th>Week</th><th>Type</th><th>Status</th><th>Deadline</th><th>Finalize</th><th>Manage</th></tr></thead><tbody>
+            {weeks.map(w=><tr key={w.id}>
+              <td>Week {w.week_number}</td><td>{w.week_type}</td><td><span className="badge">{w.status}</span></td>
+              <td>{w.pick_deadline ? new Date(w.pick_deadline).toLocaleString() : '—'}</td>
+              <td>{w.status==='COMPLETE' ? <><span className="muted">Final</span>{w.week_number>=8 && w.week_number<=13 && <ApplyWeeklyCutButton weekId={w.id}/>}</> : <><MakeFinalButton weekId={w.id} disabled={!finalReadiness.get(w.id)?.ready}/>{!finalReadiness.get(w.id)?.ready && <div className="muted" style={{fontSize:12,marginTop:4}}>{finalReadiness.get(w.id)?.gameCount??0}/15 games · {finalReadiness.get(w.id)?.remaining??0} unfinished</div>}</>}</td>
+              <td><Link href={`/commissioner/weeks/${w.id}`}>Manage</Link></td>
+            </tr>)}
+          </tbody></table>
+        </div>
+      </>}
+    </section>
   </main>;
 }
