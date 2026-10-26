@@ -3,7 +3,7 @@ import { requireCommissioner } from '@/lib/auth';
 
 export async function POST(req: Request) {
   try {
-    const { supabase, user } = await requireCommissioner();
+    const { supabase } = await requireCommissioner();
     const body = await req.json();
 
     const weekNumber = Number(body.week_number);
@@ -14,13 +14,17 @@ export async function POST(req: Request) {
     const { data: league, error: leagueError } = await supabase
       .from('leagues')
       .select('id, season')
-      .eq('commissioner_id', user.id)
       .order('season', { ascending: false })
       .limit(1)
       .single();
 
     if (leagueError || !league) {
       return NextResponse.json({ error: 'Commissioner league not found.' }, { status: 404 });
+    }
+
+    const { data: authorized, error: authError } = await supabase.rpc('can_manage_league', { target_league_id: league.id });
+    if (authError || authorized !== true) {
+      return NextResponse.json({ error: 'Not authorized to manage this league.' }, { status: 403 });
     }
 
     const { data, error } = await supabase
