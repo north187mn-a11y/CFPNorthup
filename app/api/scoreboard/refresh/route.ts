@@ -1,5 +1,6 @@
 import {NextResponse} from 'next/server';
 import {requireUser} from '@/lib/auth';
+import {supabaseAdmin} from '@/lib/supabase';
 
 function gameStatus(state:string,completed:boolean){
  if(completed)return 'FINAL';
@@ -19,6 +20,7 @@ export async function POST(req:Request){
   if(!membership)return NextResponse.json({error:'Not authorized'},{status:403});
   const {data:games,error:gamesError}=await supabase.from('games').select('id,espn_event_id,last_synced_at,commissioner_override,status').eq('week_id',weekId).order('game_number');
   if(gamesError)throw new Error('Could not load scoreboard games');
+  const admin=supabaseAdmin();
   let updated=0;
   const errors:string[]=[];
   // Bound each request and isolate failures so one game cannot block the rest.
@@ -36,7 +38,7 @@ export async function POST(req:Request){
    const away=comp.competitors?.find((c:any)=>c.homeAway==='away');
    const home=comp.competitors?.find((c:any)=>c.homeAway==='home');
    const st=comp.status??j.header?.competitions?.[0]?.status;
-   const {error}=await supabase.rpc('update_game_live_state',{
+   const {error}=await admin.rpc('update_game_live_state',{
     p_game_id:g.id,
     p_status:gameStatus(st?.type?.state,!!st?.type?.completed),
     p_away_score:Number(away?.score??0),
