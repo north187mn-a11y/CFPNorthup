@@ -9,6 +9,13 @@ export default async function Commissioner() {
   const { data: league } = await supabase.from('leagues').select('id,name,season,commissioner_id').order('season',{ascending:false}).limit(1).single();
   if (!league) return <main className="container"><h1>No league found</h1><p className="muted">Your commissioner profile exists, but no league is attached.</p></main>;
   const { data: weeks } = await supabase.from('weeks').select('id,week_number,week_type,status,pick_deadline').eq('league_id', league.id).order('week_number');
+  const weekIds = (weeks ?? []).map(w => w.id);
+  const { data: allWeekGames } = weekIds.length ? await supabase.from('games').select('week_id,status').in('week_id',weekIds) : {data: [] as {week_id:number,status:string}[]};
+  const finalReadiness = new Map((weeks ?? []).map(w => {
+    const games = (allWeekGames ?? []).filter(g => g.week_id === w.id);
+    const remaining = games.filter(g => g.status !== 'FINAL').length;
+    return [w.id,{ready:games.length===15 && remaining===0,gameCount:games.length,remaining}] as const;
+  }));
   const { count: playerCount } = await supabase.from('league_members').select('*',{count:'exact',head:true}).eq('league_id',league.id).neq('status','ELIMINATED');
   const currentWeek = [...(weeks ?? [])].reverse().find(w => w.status === 'OPEN') ?? [...(weeks ?? [])].reverse()[0];
   const { data: members } = await supabase.from('league_members').select('user_id').eq('league_id', league.id);
@@ -70,7 +77,7 @@ export default async function Commissioner() {
     </div>}
     <InvitePlayerForm />
     <div className="card" style={{marginTop:16}}><h2>Weeks</h2>
-      {!weeks?.length ? <p className="muted">No weeks yet. Create the first week to start entering games.</p> : <table><thead><tr><th>Week</th><th>Type</th><th>Status</th><th>Deadline</th><th>Finalize</th><th></th></tr></thead><tbody>{weeks.map(w=><tr key={w.id}><td>Week {w.week_number}</td><td>{w.week_type}</td><td><span className="badge">{w.status}</span></td><td>{w.pick_deadline ? new Date(w.pick_deadline).toLocaleString() : '—'}</td><td>{w.status==='COMPLETE'?<div><span className="muted">Final</span>{w.week_number>=8 && w.week_number<=13 && <ApplyWeeklyCutButton weekId={w.id}/>}</div>:<MakeFinalButton weekId={w.id} disabled={false}/>}</td><td><Link href={`/commissioner/weeks/${w.id}`}>Manage →</Link></td></tr>)}</tbody></table>}
+      {!weeks?.length ? <p className="muted">No weeks yet. Create the first week to start entering games.</p> : <table><thead><tr><th>Week</th><th>Type</th><th>Status</th><th>Deadline</th><th>Finalize</th><th></th></tr></thead><tbody>{weeks.map(w=><tr key={w.id}><td>Week {w.week_number}</td><td>{w.week_type}</td><td><span className="badge">{w.status}</span></td><td>{w.pick_deadline ? new Date(w.pick_deadline).toLocaleString() : '—'}</td><td>{w.status==='COMPLETE'?<div><span className="muted">Final</span>{w.week_number>=8 && w.week_number<=13 && <ApplyWeeklyCutButton weekId={w.id}/>}</div>:<div><MakeFinalButton weekId={w.id} disabled={!finalReadiness.get(w.id)?.ready}/>{!finalReadiness.get(w.id)?.ready&&<div className="muted" style={{fontSize:12,marginTop:4}}>{finalReadiness.get(w.id)?.gameCount??0}/15 games · {finalReadiness.get(w.id)?.remaining??0} not final</div>}</div>}</td><td><Link href={`/commissioner/weeks/${w.id}`}>Manage →</Link></td></tr>)}</tbody></table>}
     </div>
   </main>;
 }
