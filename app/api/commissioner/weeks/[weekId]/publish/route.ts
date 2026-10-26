@@ -4,7 +4,7 @@ import { requireCommissioner } from '@/lib/auth';
 export async function POST(_req: Request, { params }: { params: Promise<{ weekId: string }> }) {
   try {
     const { weekId } = await params;
-    const { supabase, profile } = await requireCommissioner();
+    const { supabase, user } = await requireCommissioner();
 
     const { data: week, error: weekError } = await supabase
       .from('weeks')
@@ -18,10 +18,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ weekId
       .from('leagues')
       .select('id')
       .eq('id', week.league_id)
-      .eq('commissioner_id', profile.id)
-      .single();
+            .single();
 
-    if (!league) return NextResponse.json({ error: 'You cannot publish this week.' }, { status: 403 });
+    const {data:membership}=await supabase.from('league_members').select('id').eq('league_id',week.league_id).eq('user_id',user.id).maybeSingle();
+    if (!league || !membership) return NextResponse.json({ error: 'You cannot publish this week.' }, { status: 403 });
     if (week.status !== 'DRAFT') return NextResponse.json({ error: `Week is already ${week.status}.` }, { status: 409 });
 
     // A new week cannot be published until every earlier week is finalized.
