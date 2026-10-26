@@ -33,14 +33,15 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
 
  const rankingWeek=[...(weeks??[])].reverse().find((w:any)=>['OPEN','LOCKED','SCORING','COMPLETE'].includes(w.status));
  const projected=params.projected==='1'&&!!rankingWeek&&rankingWeek.status!=='COMPLETE';
- const {data:projectionGames,error:gamesError}=projected?await supabase.from('games').select('id,game_number,away_team_id,home_team_id,away_team,home_team,favorite_team_name,favorite_points,underdog_points,status,away_score,home_score').eq('week_id',rankingWeek!.id):{data:[],error:null};
+ const {data:projectionGames,error:gamesError}=projected?await supabase.from('games').select('id,game_number,away_team_id,home_team_id,away_team,home_team,favorite_team_name,favorite_points,underdog_points,status,away_score,home_score,commissioner_override,override_winner_team_id').eq('week_id',rankingWeek!.id):{data:[],error:null};
  const projectionGameIds=(projectionGames??[]).map((g:any)=>g.id);
  const {data:projectionPicks,error:picksError}=projected&&projectionGameIds.length?await supabase.from('picks').select('player_id,game_id,selected_team_id').in('game_id',projectionGameIds):{data:[],error:null};
  const {data:projectionHistoricalPicks,error:historicalPicksError}=projected&&historicalIds.length?await supabase.from('historical_picks').select('historical_player_id,game_number,selected_team_name').eq('week_id',rankingWeek!.id).in('historical_player_id',historicalIds):{data:[],error:null};
  const projectionReady=projected&&!gamesError&&!picksError&&!historicalPicksError&&projectionGameIds.length>0;
  const projectedPoints=(hp:any)=>(projectionGames??[]).reduce((sum:number,g:any)=>{
-  if(!['FINAL','IN_PROGRESS'].includes(g.status)||g.away_score==null||g.home_score==null||Number(g.away_score)===Number(g.home_score))return sum;
-  const awayWins=Number(g.away_score)>Number(g.home_score);
+  if(!['FINAL','IN_PROGRESS'].includes(g.status))return sum;
+  if(!(g.status==='FINAL'&&g.commissioner_override&&g.override_winner_team_id)&&(g.away_score==null||g.home_score==null||Number(g.away_score)===Number(g.home_score)))return sum;
+  const awayWins=g.status==='FINAL'&&g.commissioner_override&&g.override_winner_team_id?g.override_winner_team_id===g.away_team_id:Number(g.away_score)>Number(g.home_score);
   const winner=awayWins?g.away_team:g.home_team;
   const winnerId=awayWins?g.away_team_id:g.home_team_id;
   const livePick=hp.user_id?(projectionPicks??[]).find((p:any)=>p.player_id===hp.user_id&&p.game_id===g.id):undefined;
