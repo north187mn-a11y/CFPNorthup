@@ -48,6 +48,26 @@ export default async function Commissioner() {
       <div className="card"><div className="muted">Weeks Created</div><div className="stat">{weeks?.length ?? 0}</div></div>
       <div className="card"><div className="muted">Season</div><div className="stat">{league.season}</div></div>
     </div>
+    {currentWeek && <section className="card" style={{marginTop:16}} aria-label="Week finalization checklist">
+      <h2>Week {currentWeek.week_number} — Finalization Checklist</h2>
+      <p className="muted">Review these checks before selecting Make Final. This checklist does not change league data.</p>
+      <ul>
+        <li>{totalGames === 15 ? '✓' : '○'} Games scheduled: {totalGames}/15</li>
+        <li>{totalGames === 15 && finalizedGames === 15 ? '✓' : '○'} Games marked final: {finalizedGames}/15</li>
+        <li>{missingWinners.length === 0 ? '✓' : '○'} Final games with a recorded winner: {finalizedGames - missingWinners.length}/{finalizedGames}</li>
+        <li>{currentWeek.status === 'COMPLETE' ? '✓' : '○'} Week status: {currentWeek.status === 'COMPLETE' ? 'Completed' : 'Not yet completed'}</li>
+      </ul>
+      {currentWeek.status === 'COMPLETE'
+        ? <p role="status">This week is already complete. Review the scores and, when applicable, the weekly cut preview.</p>
+        : totalGames !== 15
+        ? <p role="status">Next action: configure exactly 15 games.</p>
+        : finalizedGames !== 15
+        ? <p role="status">Next action: wait for all games to finish and verify their results.</p>
+        : missingWinners.length
+        ? <p role="status">Next action: resolve missing winners before finalizing.</p>
+        : <p role="status">All checklist checks passed. You can review results and use Make Final in the Weeks table below.</p>}
+      <p className="muted">Make Final recalculates scores. After completion, inspect official standings before applying a cut.</p>
+    </section>}
     {currentWeek && <section className="card" style={{marginTop:16}} aria-label="League health">
       <h2>Week {currentWeek.week_number} — League Health</h2>
       <p className="muted">Read-only operational checks · {currentWeek.status}</p>
