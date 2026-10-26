@@ -136,7 +136,7 @@ export default async function Commissioner() {
             {weeks.map(w=><tr key={w.id}>
               <td>Week {w.week_number}</td><td>{w.week_type}</td><td><span className="badge">{w.status}</span></td>
               <td>{w.pick_deadline ? new Date(w.pick_deadline).toLocaleString() : '—'}</td>
-              <td>{w.status==='COMPLETE' ? <><span className="muted">Final</span>{w.week_number>=8 && w.week_number<=13 && <ApplyWeeklyCutButton weekId={w.id}/>}</> : <><MakeFinalButton weekId={w.id} disabled={!finalReadiness.get(w.id)?.ready}/>{!finalReadiness.get(w.id)?.ready && <div className="muted" style={{fontSize:12,marginTop:4}}>{finalReadiness.get(w.id)?.gameCount??0}/15 games · {finalReadiness.get(w.id)?.remaining??0} unfinished</div>}</>}</td>
+              <td>{w.status==='COMPLETE' ? <><span className="muted">Final</span>{w.week_number>=8 && w.week_number<=13 && ((cutCountByWeek.get(w.id)??0)>0 ? <span className="muted">Cut applied ({cutCountByWeek.get(w.id)} players)</span> : <ApplyWeeklyCutButton weekId={w.id}/>)}</> : <><MakeFinalButton weekId={w.id} disabled={!finalReadiness.get(w.id)?.ready}/>{!finalReadiness.get(w.id)?.ready && <div className="muted" style={{fontSize:12,marginTop:4}}>{finalReadiness.get(w.id)?.gameCount??0}/15 games · {finalReadiness.get(w.id)?.remaining??0} unfinished</div>}</>}</td>
               <td><Link href={`/commissioner/weeks/${w.id}`}>Manage</Link></td>
             </tr>)}
           </tbody></table>
