@@ -17,7 +17,7 @@ export default async function Commissioner() {
     return [w.id,{ready:games.length===15 && remaining===0,gameCount:games.length,remaining}] as const;
   }));
   const { count: playerCount } = await supabase.from('league_members').select('*',{count:'exact',head:true}).eq('league_id',league.id).neq('status','ELIMINATED');
-  const currentWeek = [...(weeks ?? [])].reverse().find(w => w.status === 'OPEN') ?? [...(weeks ?? [])].reverse()[0];
+  const currentWeek = [...(weeks ?? [])].reverse().find(w => ['OPEN','LOCKED','SCORING'].includes(w.status)) ?? [...(weeks ?? [])].reverse().find(w => w.status === 'COMPLETE') ?? [...(weeks ?? [])].reverse()[0];
   const { data: members } = await supabase.from('league_members').select('user_id').eq('league_id', league.id);
   const memberIds = (members ?? []).map(m => m.user_id);
   const { data: profiles } = memberIds.length ? await supabase.from('profiles').select('id,full_name,role').in('id',memberIds) : {data: [] as {id:string,full_name:string,role:string}[]};
@@ -75,6 +75,22 @@ export default async function Commissioner() {
         </tbody></table>
       </details>
     </div>}
+    {currentWeek && currentWeek.week_number >= 7 && <section className="card" style={{marginTop:16}}>
+      <h2>Elimination Management — Week {currentWeek.week_number}</h2>
+      <p className="muted">{currentWeek.week_number === 7
+        ? 'Week 7 cut: rank by season-to-date points. The lowest 14 of the original 28 are eliminated.'
+        : currentWeek.week_number <= 11
+        ? 'Weeks 8–11: eliminate two active survivors based on weekly points, using YTD points to break ties.'
+        : currentWeek.week_number <= 13
+        ? 'Weeks 12–13: eliminate one active survivor based on weekly points, using YTD points to break ties.'
+        : 'Finals: no automatic weekly survivor cut.'}</p>
+      <p>Review the weekly standings and the cut line before confirming any elimination. A tie in both weekly and YTD scores at the boundary requires resolution.</p>
+      <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+        <Link href="/standings"><button>Review Official Standings</button></Link>
+        {currentWeek.status !== 'COMPLETE' && <Link href="/standings?projected=1"><button>Review Projected Cut</button></Link>}
+      </div>
+      <p className="muted" style={{marginTop:12}}>Projected standings are unofficial. Finalize the week and use the elimination preview before confirming a cut.</p>
+    </section>}
     <InvitePlayerForm />
     <div className="card" style={{marginTop:16}}><h2>Weeks</h2>
       {!weeks?.length ? <p className="muted">No weeks yet. Create the first week to start entering games.</p> : <table><thead><tr><th>Week</th><th>Type</th><th>Status</th><th>Deadline</th><th>Finalize</th><th></th></tr></thead><tbody>{weeks.map(w=><tr key={w.id}><td>Week {w.week_number}</td><td>{w.week_type}</td><td><span className="badge">{w.status}</span></td><td>{w.pick_deadline ? new Date(w.pick_deadline).toLocaleString() : '—'}</td><td>{w.status==='COMPLETE'?<div><span className="muted">Final</span>{w.week_number>=8 && w.week_number<=13 && <ApplyWeeklyCutButton weekId={w.id}/>}</div>:<div><MakeFinalButton weekId={w.id} disabled={!finalReadiness.get(w.id)?.ready}/>{!finalReadiness.get(w.id)?.ready&&<div className="muted" style={{fontSize:12,marginTop:4}}>{finalReadiness.get(w.id)?.gameCount??0}/15 games · {finalReadiness.get(w.id)?.remaining??0} not final</div>}</div>}</td><td><Link href={`/commissioner/weeks/${w.id}`}>Manage →</Link></td></tr>)}</tbody></table>}
