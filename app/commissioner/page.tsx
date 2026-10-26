@@ -16,6 +16,8 @@ export default async function Commissioner() {
     const remaining = games.filter(g => g.status !== 'FINAL').length;
     return [w.id,{ready:games.length===15 && remaining===0,gameCount:games.length,remaining}] as const;
   }));
+  const { data: appliedCuts } = weekIds.length ? await supabase.from('eliminations').select('week_id,player_id').in('week_id',weekIds) : {data: [] as {week_id:number,player_id:string}[]};
+  const cutCountByWeek = new Map(weekIds.map(id => [id,(appliedCuts??[]).filter(e=>e.week_id===id).length]));
   const { count: playerCount } = await supabase.from('league_members').select('*',{count:'exact',head:true}).eq('league_id',league.id).neq('status','ELIMINATED');
   const currentWeek = [...(weeks ?? [])].reverse().find(w => ['OPEN','LOCKED','SCORING'].includes(w.status)) ?? [...(weeks ?? [])].reverse().find(w => w.status === 'COMPLETE') ?? [...(weeks ?? [])].reverse()[0];
   const { data: members } = await supabase.from('league_members').select('user_id').eq('league_id', league.id);
@@ -125,7 +127,7 @@ export default async function Commissioner() {
             <p className="muted">{finalReadiness.get(w.id)?.gameCount??0}/15 games · {finalReadiness.get(w.id)?.remaining??0} unfinished</p>
             <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:10}}>
               <Link href={`/commissioner/weeks/${w.id}`}>Manage week</Link>
-              {w.status==='COMPLETE' ? <>{w.week_number>=8 && w.week_number<=13 && <ApplyWeeklyCutButton weekId={w.id}/>}</> : <MakeFinalButton weekId={w.id} disabled={!finalReadiness.get(w.id)?.ready}/>}
+              {w.status==='COMPLETE' ? <>{w.week_number>=8 && w.week_number<=13 && ((cutCountByWeek.get(w.id)??0)>0 ? <span className="muted">Cut applied ({cutCountByWeek.get(w.id)} players)</span> : <ApplyWeeklyCutButton weekId={w.id}/>)}</> : <MakeFinalButton weekId={w.id} disabled={!finalReadiness.get(w.id)?.ready}/>}
             </div>
           </article>)}
         </div>
