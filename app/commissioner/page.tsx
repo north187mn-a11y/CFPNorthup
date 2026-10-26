@@ -32,7 +32,7 @@ export default async function Commissioner() {
   const healthIssues = [
     ...(!gamesReady ? [`Week has ${totalGames}/15 games`] : []),
     ...missingWinners.map(g => `Game ${g.game_number} is FINAL without a recorded winner`),
-    ...missingScoreRows.length ? [`${missingScoreRows.length} player(s) have no weekly score row`] : [],
+    ...(missingScoreRows.length ? [`${missingScoreRows.length} player(s) have no weekly score row`] : []),
   ];
   return <main className="container">
     <div className="page-head"><div><h1>Commissioner Dashboard</h1><p className="muted">{league.name} · {league.season}</p></div><Link href="/commissioner/weeks/new"><button>+ New Week</button></Link></div>
