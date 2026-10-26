@@ -37,3 +37,10 @@ test('projected standings honor commissioner overrides on final games',()=>{
  assert.match(standings,/commissioner_override,override_winner_team_id/);
  assert.match(standings,/g\.override_winner_team_id===g\.away_team_id/);
 });
+
+const commissioner=readFileSync(new URL('../app/commissioner/page.tsx',import.meta.url),'utf8');
+test('commissioner dashboard reports missing final winners and completed-week score records',()=>{
+ assert.match(commissioner,/missingWinners/);
+ assert.match(commissioner,/missingScoreRows/);
+ assert.match(commissioner,/League Health/);
+});
