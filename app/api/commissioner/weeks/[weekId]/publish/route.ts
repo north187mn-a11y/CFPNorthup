@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireCommissioner } from '@/lib/auth';
+import {requireLeagueCommissioner} from '@/lib/league-commissioner';
 
 export async function POST(_req: Request, { params }: { params: Promise<{ weekId: string }> }) {
   try {
@@ -20,8 +21,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ weekId
       .eq('id', week.league_id)
             .single();
 
-    const {data:membership}=await supabase.from('league_members').select('id').eq('league_id',week.league_id).eq('user_id',user.id).maybeSingle();
-    if (!league || !membership) return NextResponse.json({ error: 'You cannot publish this week.' }, { status: 403 });
+    if (!league) return NextResponse.json({ error: 'League not found.' }, { status: 404 });
+    await requireLeagueCommissioner(week.league_id);
     if (week.status !== 'DRAFT') return NextResponse.json({ error: `Week is already ${week.status}.` }, { status: 409 });
 
     // A new week cannot be published until every earlier week is finalized.
