@@ -23,3 +23,17 @@ test('spread refresh rejects missing ESPN lines before database update',()=>{
 test('spread refresh checks commissioner authority for the league',()=>{
  assert.match(spreads,/requireLeagueCommissioner\(week\.league_id\)/);
 });
+
+const scoreboard=readFileSync(new URL('../app/scoreboard/page.tsx',import.meta.url),'utf8');
+const standings=readFileSync(new URL('../app/standings/page.tsx',import.meta.url),'utf8');
+test('scoreboard earned points use authoritative weekly scores',()=>{
+ assert.match(scoreboard,/officialWeekly\?\.points/);
+ assert.doesNotMatch(scoreboard,/const wtdEarned=\(games/);
+});
+test('standings use authoritative weekly scores for official rankings',()=>{
+ assert.match(standings,/from\(['"]weekly_scores['"]\)/);
+});
+test('projected standings honor commissioner overrides on final games',()=>{
+ assert.match(standings,/commissioner_override,override_winner_team_id/);
+ assert.match(standings,/g\.override_winner_team_id===g\.away_team_id/);
+});
