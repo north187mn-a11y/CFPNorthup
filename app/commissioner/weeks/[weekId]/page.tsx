@@ -5,6 +5,7 @@ import PublishWeekButton from './PublishWeekButton';
 import UpdateSpreadsButton from './UpdateSpreadsButton';
 import DeleteWeekButton from './DeleteWeekButton';
 import ESPNGameSelector from './ESPNGameSelector';
+import ReplaceGameButton from './ReplaceGameButton';
 
 function gameDay(value:string|null){
   if(!value)return '—';
@@ -25,8 +26,8 @@ export default async function ManageWeek({params}:{params:Promise<{weekId:string
     <div className="page-head"><div><h1>Week {week.week_number}</h1><p className="muted">Status: <span className="badge">{week.status}</span>{week.pick_deadline?` · Deadline: ${new Date(week.pick_deadline).toLocaleString()}`:''}</p></div><div style={{display:'flex',gap:10,alignItems:'flex-start'}}>{week.status==='DRAFT' && (games?.length??0)>0 && <UpdateSpreadsButton weekId={weekId}/>}{week.status==='DRAFT' && <PublishWeekButton weekId={weekId} gameCount={games?.length??0}/>}{(games?.length??0)>0 && <Link href={`/commissioner/weeks/${weekId}/games/new`}><button>+ Add Game</button></Link>}</div></div>
     {week.status==='DRAFT' && (games?.length??0)===0 && <ESPNGameSelector weekId={weekId}/>}\n    <div className="card" style={{marginTop:16}}><h2>Games ({games?.length??0}/15)</h2>
       {!games?.length?<p className="muted">Load the ESPN week and select 15 games. The spread, bonus, day, time, and network will come from ESPN.</p>:
-      <div style={{overflowX:'auto'}}><table><thead><tr><th>#</th><th>Matchup</th><th>Day</th><th>Time</th><th>Network</th><th>Locked spread</th><th>ESPN ID</th><th>Status</th></tr></thead><tbody>
-        {games.map(g=><tr key={g.id}><td>{g.game_number}</td><td>{g.away_team} @ {g.home_team}</td><td>{gameDay(g.kickoff_at)}</td><td>{gameTime(g.kickoff_at)}</td><td>{g.network||'—'}</td><td>{g.locked_spread}</td><td>{g.espn_event_id||'—'}</td><td>{g.status}</td></tr>)}
+      <div style={{overflowX:'auto'}}><table><thead><tr><th>#</th><th>Matchup</th><th>Day</th><th>Time</th><th>Network</th><th>Locked spread</th><th>ESPN ID</th><th>Status</th>{week.status==='DRAFT'&&<th>Action</th>}</tr></thead><tbody>
+        {games.map(g=><tr key={g.id}><td>{g.game_number}</td><td>{g.away_team} @ {g.home_team}</td><td>{gameDay(g.kickoff_at)}</td><td>{gameTime(g.kickoff_at)}</td><td>{g.network||'—'}</td><td>{g.locked_spread}</td><td>{g.espn_event_id||'—'}</td><td>{g.status}</td>{week.status==='DRAFT'&&<td><ReplaceGameButton weekId={weekId} gameId={String(g.id)} currentEventId={g.espn_event_id}/></td>}</tr>)}
       </tbody></table></div>}
     </div>
     {['DRAFT','OPEN'].includes(week.status) && <EditDeadline weekId={weekId} deadline={week.pick_deadline}/>}
