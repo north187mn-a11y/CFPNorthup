@@ -1,2 +1,9 @@
 'use client';
-export default function ReplaceGameButton(){return null;}
+import {useEffect,useState} from 'react';
+type Game={eventId:string;awayTeam:string;homeTeam:string;lineText:string|null;spread:number|null};
+export default function ReplaceGameButton({weekId,gameId,currentEventId}:{weekId:string;gameId:string;currentEventId:string|null}){
+const [open,setOpen]=useState(false),[games,setGames]=useState<Game[]>([]),[selected,setSelected]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[loading,setLoading]=useState(false);
+useEffect(()=>{if(!open)return;setLoading(true);fetch('/api/commissioner/espn-schedule?weekId='+encodeURIComponent(weekId)).then(async r=>{const j=await r.json();if(!r.ok)throw Error(j.error||'Schedule unavailable');setGames(j.games||[])}).catch(e=>setError(e.message)).finally(()=>setLoading(false))},[open,weekId]);
+async function save(){if(!selected)return;const g=games.find(x=>x.eventId===selected);if(!g||!window.confirm('Replace this game with '+g.awayTeam+' @ '+g.homeTeam+'?'))return;setBusy(true);setError('');try{const r=await fetch('/api/commissioner/weeks/'+weekId+'/games/'+gameId+'/replace',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({eventId:selected})});const j=await r.json();if(!r.ok)throw Error(j.error||'Could not replace game');window.location.reload()}catch(e){setError(e instanceof Error?e.message:'Replacement failed');setBusy(false)}}
+return <div><button type="button" onClick={()=>setOpen(!open)}>{open?'Cancel':'Replace'}</button>{open&&<div style={{minWidth:260,maxWidth:440,marginTop:8}}>{loading?<p>Loading ESPN games…</p>:<><select aria-label="Replacement game" value={selected} onChange={e=>setSelected(e.target.value)}><option value="">Select replacement…</option>{games.filter(g=>g.eventId!==currentEventId&&g.spread!==null).map(g=><option key={g.eventId} value={g.eventId}>{g.awayTeam} @ {g.homeTeam} ({g.lineText||g.spread})</option>)}</select><button type="button" disabled={!selected||busy} onClick={save}>{busy?'Saving…':'Confirm replacement'}</button></>}{error&&<p className="error">{error}</p>}</div>}</div>
+}
