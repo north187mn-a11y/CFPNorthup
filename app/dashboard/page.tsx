@@ -5,7 +5,7 @@ export default async function Dashboard(){
  if(!membership)return <main className="container"><h1>Player Dashboard</h1><p className="muted">You are not yet attached to a league.</p></main>;
  const {data:week}=await supabase.from('weeks').select('*').eq('league_id',membership.league_id).in('status',['OPEN','LOCKED','SCORING','COMPLETE']).order('week_number',{ascending:false}).limit(1).single();
  if(!week)return <main className="container"><h1>Player Dashboard</h1><div className="card"><p className="muted">There is no published week yet.</p></div></main>;
- const {data:games}=await supabase.from('games').select('*').eq('week_id',week.id).order('game_number');
+ const {data:games}=await supabase.from('games').select('*').eq('week_id',week.id).order('kickoff_at',{ascending:true,nullsFirst:false}).order('game_number');
  const {data:mine}=await supabase.from('picks').select('game_id,selected_team_id').eq('week_id',week.id).eq('player_id',user.id);
  const initial=Object.fromEntries((mine??[]).map(p=>[String(p.game_id),p.selected_team_id]));
  const {data:exception}=await supabase.from('late_pick_exceptions').select('expires_at,consumed_at').eq('week_id',week.id).eq('player_id',user.id).maybeSingle();
