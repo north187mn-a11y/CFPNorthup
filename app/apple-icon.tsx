@@ -6,13 +6,14 @@ export const runtime = 'nodejs';
 export const size = { width: 180, height: 180 };
 export const contentType = 'image/png';
 
-export default function AppleIcon() {
+export default function Icon() {
   const css = readFileSync(join(process.cwd(), 'app', 'globals.css'), 'utf8');
-  const trophy = css.match(/\.login-trophy\s*\{[^}]*?url\("(data:image\/jpeg;base64,[^"]+)"\)/s)?.[1];
-  if (!trophy) throw new Error('Login trophy image not found in globals.css');
+  const base64 = css.match(/\\.login-trophy\\s*\\{[^}]*?url\\(\"data:image\\/jpeg;base64,([^\"]+)\"\\)/s)?.[1];
+  if (!base64) throw new Error('Login trophy image not found in globals.css');
+  const image = new Uint8Array(Buffer.from(base64, 'base64'));
   return new ImageResponse(
     <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0b0c0b' }}>
-      <img src={trophy} width={176} height={176} style={{ objectFit: 'contain' }} alt="College Football Survivor trophy" />
+      <img src={image as unknown as string} width={176} height={176} style={{ objectFit: 'contain' }} alt="College Football Survivor trophy" />
     </div>,
     { ...size }
   );
