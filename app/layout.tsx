@@ -1,4 +1,4 @@
 import './globals.css';
 import NavMenu from './NavMenu';
-export const metadata={title:'College Football Survivor',description:'College football prediction and elimination league',applicationName:'College Football Survivor',manifest:'/manifest.webmanifest',appleWebApp:{capable:true,statusBarStyle:'default',title:'CF Survivor'},icons:{icon:'/trophy-icon.jpg',apple:'/trophy-icon.jpg'}};
+export const metadata={title:'College Football Survivor',description:'College football prediction and elimination league',applicationName:'College Football Survivor',manifest:'/manifest.webmanifest',appleWebApp:{capable:true,statusBarStyle:'default',title:'CF Survivor'},icons:{icon:'/cfp_trophy_icon.png?v=2',apple:'/cfp_trophy_icon.png?v=2'}};
 export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="en"><body><nav className="nav"><div className="nav-inner"><strong>College Football Survivor</strong><NavMenu /></div></nav>{children}</body></html>;}
