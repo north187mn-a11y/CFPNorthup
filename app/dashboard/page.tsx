@@ -5,14 +5,18 @@ export default async function Dashboard(){
  if(!membership)return <main className="container"><h1>Player Dashboard</h1><p className="muted">You are not yet attached to a league.</p></main>;
  const {data:week}=await supabase.from('weeks').select('*').eq('league_id',membership.league_id).in('status',['OPEN','LOCKED','SCORING','COMPLETE']).order('week_number',{ascending:false}).limit(1).single();
  if(!week)return <main className="container"><h1>Player Dashboard</h1><div className="card"><p className="muted">There is no published week yet.</p></div></main>;
- const {data:games}=await supabase.from('games').select('*').eq('week_id',week.id).order('kickoff_at',{ascending:true,nullsFirst:false}).order('game_number');
- const {data:mine}=await supabase.from('picks').select('game_id,selected_team_id').eq('week_id',week.id).eq('player_id',user.id);
+ const after=Boolean(week.pick_deadline&&Date.now()>=new Date(week.pick_deadline).getTime());
+ const [{data:games},{data:mine},{data:exception},allResult,membersResult]=await Promise.all([
+  supabase.from('games').select('*').eq('week_id',week.id).order('kickoff_at',{ascending:true,nullsFirst:false}).order('game_number'),
+  supabase.from('picks').select('game_id,selected_team_id').eq('week_id',week.id).eq('player_id',user.id),
+  supabase.from('late_pick_exceptions').select('expires_at,consumed_at').eq('week_id',week.id).eq('player_id',user.id).maybeSingle(),
+  after?supabase.from('picks').select('player_id,game_id,selected_team_name').eq('week_id',week.id):Promise.resolve({data:[] as any[]}),
+  after?supabase.from('league_members').select('user_id').eq('league_id',membership.league_id):Promise.resolve({data:[] as any[]})
+ ]);
  const initial=Object.fromEntries((mine??[]).map(p=>[String(p.game_id),p.selected_team_id]));
- const {data:exception}=await supabase.from('late_pick_exceptions').select('expires_at,consumed_at').eq('week_id',week.id).eq('player_id',user.id).maybeSingle();
  const lateException=week.status==='OPEN'&&!Object.keys(initial).length&&exception&&!exception.consumed_at&&Date.now()<new Date(exception.expires_at).getTime()?exception.expires_at:null;
- const after=week.pick_deadline&&Date.now()>=new Date(week.pick_deadline).getTime();
- let all:any[]=[]; if(after){const {data}=await supabase.from('picks').select('player_id,game_id,selected_team_name').eq('week_id',week.id);all=data??[];}
- const {data:members}=after?await supabase.from('league_members').select('user_id').eq('league_id',membership.league_id):{data:[] as any[]};
+ const all=allResult.data??[];
+ const members=membersResult.data??[];
  const ids=(members??[]).map((m:any)=>m.user_id); const {data:profiles}=after&&ids.length?await supabase.from('profiles').select('id,full_name').in('id',ids):{data:[] as any[]};
  return <main className="container"><div className="page-head"><div><h1>Player Dashboard</h1><p className="muted">Week {week.week_number} · <span className="badge">{week.status}</span>{week.pick_deadline?` · Picks due ${new Date(week.pick_deadline).toLocaleString()}`:''}</p></div></div>
  <PickSheet weekId={week.id} games={games??[]} initial={initial} deadline={week.pick_deadline} weekStatus={week.status} lateException={lateException}/>
