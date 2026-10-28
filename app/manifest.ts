@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#0b1726',
     orientation: 'portrait-primary',
     icons: [
-      { src: '/trophy-icon.jpg', sizes: 'any', type: 'image/jpeg', purpose: 'any' },
+      { src: '/cfp_trophy_icon.png?v=2', sizes: '512x512', type: 'image/png', purpose: 'any' },
     ],
   };
 }
