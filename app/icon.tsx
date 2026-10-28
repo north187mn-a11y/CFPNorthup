@@ -8,7 +8,7 @@ export const contentType = 'image/png';
 
 export default function Icon() {
   const css = readFileSync(join(process.cwd(), 'app', 'globals.css'), 'utf8');
-  const base64 = css.match(/\\.login-trophy\\s*\\{[^}]*?url\\(\"data:image\\/jpeg;base64,([^\"]+)\"\\)/s)?.[1];
+  const base64 = css.split('data:image/jpeg;base64,')[1]?.split('"')[0];
   if (!base64) throw new Error('Login trophy image not found in globals.css');
   const image = new Uint8Array(Buffer.from(base64, 'base64'));
   return new ImageResponse(
