@@ -98,3 +98,10 @@ table{background:rgba(17,18,15,.65)}th{color:var(--cf-gold-light);background:rgb
 .scoreboard-details-updated{font-size:11px;line-height:1.5}
 .scoreboard-espn-link{display:inline-flex;align-items:center;min-height:44px;padding:8px 0;font-weight:700}
 @media(max-width:400px){.scoreboard-situation{gap:6px}.scoreboard-situation div{padding:8px 6px}.scoreboard-situation dd{font-size:12px}}
+
+/* Immediate feedback for mobile tab presses while a route loads. */
+@media(max-width:700px){
+ .mobile-bottom-nav .mobile-tab{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+ .mobile-bottom-nav .mobile-tab.pending{color:#fbbf24;background:#263244;opacity:.85}
+ .mobile-bottom-nav .mobile-tab:active{background:#34445e;color:#fbbf24}
+}
