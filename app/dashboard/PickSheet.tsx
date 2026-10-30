@@ -6,10 +6,10 @@ export default function PickSheet({weekId,games,initial,deadline,weekStatus,late
  const [now,setNow]=useState(Date.now()),[submitted,setSubmitted]=useState(false);
  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return ()=>clearInterval(timer);},[]);
  const after=deadline?now>=new Date(deadline).getTime():false;
- const late=after&&!!lateException;
- const lateOpen=late&&now<new Date(lateException!).getTime()&&!submitted;
+ const late=after;
+ const lateOpen=late&&!Object.keys(initial).length&&!submitted;
  const locked=weekStatus!=='OPEN'||(after&&!lateOpen)||submitted;
- const gameLocked=(g:Game)=>locked||(late&&(g.status!=='SCHEDULED'||!g.kickoff_at||now>=new Date(g.kickoff_at).getTime()));
+ const gameLocked=(g:Game)=>locked||g.status!=='SCHEDULED'||!g.kickoff_at||now>=new Date(g.kickoff_at).getTime();
  const available=games.filter(g=>!gameLocked(g));
  const picked=available.filter(g=>picks[g.id]).length;
  const choose=(g:Game,id:string)=>!busy&&!gameLocked(g)&&setPicks(p=>({...p,[g.id]:id}));
@@ -23,7 +23,7 @@ export default function PickSheet({weekId,games,initial,deadline,weekStatus,late
    else setMsg(r.ok?'Picks saved. You can edit them until the deadline.':j.error||'Could not save picks.');
   }catch{setMsg('Could not save picks. Please try again.');}finally{setBusy(false);}
  }
- return <div className="card" style={{marginTop:16}}><h2>Your Pick Sheet</h2><p className="muted">{locked?'Your picks are locked.':late?'Your commissioner has allowed one late submission. Pick every remaining game; games close at kickoff. Your picks lock when you submit.':'Pick one winner in each game. You can save and return to edit before the deadline.'}</p>
+ return <div className="card" style={{marginTop:16}}><h2>Your Pick Sheet</h2><p className="muted">{locked?'Your picks are locked.':late?'You can submit one late pick sheet for the remaining games. Pick every remaining game; games close at kickoff. Your picks lock when you submit.':'Pick one winner in each game. You can save and return to edit before the deadline.'}</p>
  <div style={{overflowX:'auto'}}><table><thead><tr><th>#</th><th>Game</th><th>Your pick</th><th>Kickoff</th><th>Network</th></tr></thead><tbody>{games.map(g=>{
  const favAway=g.favorite_team_id?g.favorite_team_id===g.away_team_id:g.favorite_team_name===g.away_team; const ap=favAway?Number(g.favorite_points):Number(g.underdog_points); const hp=favAway?Number(g.underdog_points):Number(g.favorite_points);
  return <tr key={g.id}><td>{g.game_number}</td><td>{g.away_team} @ {g.home_team}</td><td><div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" disabled={busy||gameLocked(g)} aria-pressed={picks[g.id]===g.away_team_id} onClick={()=>choose(g,g.away_team_id)} style={{opacity:picks[g.id]===g.away_team_id?1:.55}}>{g.away_team} ({ap.toFixed(1)})</button><button type="button" disabled={busy||gameLocked(g)} aria-pressed={picks[g.id]===g.home_team_id} onClick={()=>choose(g,g.home_team_id)} style={{opacity:picks[g.id]===g.home_team_id?1:.55}}>{g.home_team} ({hp.toFixed(1)})</button></div>{late&&gameLocked(g)&&!submitted&&<span className="muted">Closed</span>}</td><td>{g.kickoff_at?new Date(g.kickoff_at).toLocaleString():'—'}</td><td>{g.network||'—'}</td></tr>})}</tbody></table></div>
