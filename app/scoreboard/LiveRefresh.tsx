@@ -11,7 +11,7 @@ export default function LiveRefresh({weekId}:{weekId:number}){
   let active=true,inFlight=false;
   let timer:ReturnType<typeof setTimeout>;
   let controller:AbortController|undefined;
-  const refresh=async()=>{
+  const refresh=async(force=false)=>{
    if(!active||inFlight||document.visibilityState==='hidden')return;
    clearTimeout(timer);
    inFlight=true;setBusy(true);
@@ -20,7 +20,7 @@ export default function LiveRefresh({weekId}:{weekId:number}){
    try{
     const res=await fetch('/api/scoreboard/refresh',{
      method:'POST',headers:{'content-type':'application/json'},
-     body:JSON.stringify({weekId}),cache:'no-store',signal:controller.signal
+     body:JSON.stringify({weekId,force}),cache:'no-store',signal:controller.signal
     });
     if(!res.ok)throw new Error('Scoreboard refresh failed');
     const result=await res.json();
@@ -33,12 +33,12 @@ export default function LiveRefresh({weekId}:{weekId:number}){
     if(active){
      setBusy(false);
      router.refresh();
-     timer=setTimeout(refresh,60000);
+     timer=setTimeout(()=>void refresh(),15000);
     }
    }
   };
   const foreground=()=>{if(document.visibilityState==='visible')void refresh();};
-  refreshNow.current=()=>void refresh();
+  refreshNow.current=()=>void refresh(true);
   document.addEventListener('visibilitychange',foreground);
   window.addEventListener('focus',foreground);
   void refresh();
