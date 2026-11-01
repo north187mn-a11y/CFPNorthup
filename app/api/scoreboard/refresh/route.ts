@@ -13,6 +13,7 @@ export async function POST(req:Request){
   const {supabase,user}=await requireUser();
   const body=await req.json().catch(()=>({}));
   const weekId=Number(body.weekId);
+  const force=body.force===true;
   if(!weekId)return NextResponse.json({error:'weekId is required'},{status:400});
   const {data:week}=await supabase.from('weeks').select('id,league_id').eq('id',weekId).single();
   if(!week)return NextResponse.json({error:'Week not found'},{status:404});
@@ -29,8 +30,8 @@ export async function POST(req:Request){
    await Promise.all(pending.slice(start,start+4).map(async(g:any)=>{
    try{
    if(!g.espn_event_id||g.commissioner_override)return;
-   if(g.last_synced_at&&Date.now()-new Date(g.last_synced_at).getTime()<55*1000)return;
-   const res=await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event=${g.espn_event_id}`,{cache:'no-store',signal:AbortSignal.timeout(8000)});
+   if(!force&&g.last_synced_at&&Date.now()-new Date(g.last_synced_at).getTime()<15*1000)return;
+   const res=await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/college-football/summary?event=${g.espn_event_id}&_=${Date.now()}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(8000)});
    if(!res.ok){errors.push(`ESPN ${g.espn_event_id}: ${res.status}`);return;}
    const j=await res.json();
    const comp=j.header?.competitions?.[0];
