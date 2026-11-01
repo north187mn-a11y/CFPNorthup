@@ -38,7 +38,7 @@ export default async function Scoreboard(){
  },wtdEarned);
  const ytd=priorYtd+wtdEarned;
  const last=(games??[]).map((g:any)=>g.last_synced_at).filter(Boolean).sort().pop();
- return <main className="container"><LiveRefresh weekId={week.id}/><div className="page-head"><div><h1>Week {week.week_number} Scoreboard</h1><p className="muted">The 15 league games only · refreshes from ESPN about every minute{last?` · Last updated ${new Date(last).toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'})}`:''}</p></div></div>
+ return <main className="container"><LiveRefresh weekId={week.id}/><div className="page-head"><div><h1>Week {week.week_number} Scoreboard</h1><p className="muted">The 15 league games only · checks ESPN about every 15 seconds{last?` · Last updated ${new Date(last).toLocaleTimeString('en-US',{timeZone:'America/New_York',hour:'numeric',minute:'2-digit',second:'2-digit',timeZoneName:'short'})}`:''}</p></div></div>
  <div className="grid scoreboard-summary" style={{marginTop:16}}>
   <div className="card" style={{textAlign:'center'}}><div className="muted">YTD Total</div><div style={{fontSize:'2rem',fontWeight:700}}>{ytd.toFixed(1)}</div><div className="muted">points through now</div></div>
   <div className="card" style={{textAlign:'center'}}><div className="muted">WTD Total</div><div style={{fontSize:'2rem',fontWeight:700}}>{wtdEarned.toFixed(1)}</div><div className="muted">earned this week</div></div>
