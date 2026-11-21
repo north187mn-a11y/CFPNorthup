@@ -21,7 +21,7 @@ export default async function Dashboard(){
  const ids=(members??[]).map((m:any)=>m.user_id); const {data:profiles}=canViewPicks&&ids.length?await supabase.from('profiles').select('id,full_name').in('id',ids):{data:[] as any[]};
  return <main className="container"><div className="page-head"><div><h1>Player Dashboard</h1><p className="muted">Week {week.week_number} · <span className="badge">{week.status}</span>{week.pick_deadline?` · Picks due ${new Date(week.pick_deadline).toLocaleString()}`:''}</p></div></div>
  <PickSheet weekId={week.id} games={games??[]} initial={initial} deadline={week.pick_deadline} weekStatus={week.status} lateException={lateException}/>
- {after&&!canViewPicks&&<div className="card" style={{marginTop:16}}><h2>Everyone's Picks</h2><p className="muted">Submit picks for every game this week to see other players' picks.</p></div>}
+ {after&&!canViewPicks&&<div className="card" style={{marginTop:16}}><h2>Everyone's Picks</h2><p className="muted">Submit your picks for this week to see other players' picks.</p></div>}
  {canViewPicks&&<div className="card" style={{marginTop:16}}><h2>Everyone's Picks</h2><div style={{overflowX:'auto'}}><table><thead><tr><th>Player</th>{(games??[]).map(g=><th key={g.id}>#{g.game_number}</th>)}</tr></thead><tbody>{(profiles??[]).map((p:any)=><tr key={p.id}><td>{p.full_name}</td>{(games??[]).map(g=><td key={g.id}>{all.find(x=>x.player_id===p.id&&x.game_id===g.id)?.selected_team_name??'—'}</td>)}</tr>)}</tbody></table></div></div>}
  </main>;
 }
