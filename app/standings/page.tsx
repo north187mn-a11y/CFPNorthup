@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {requireUser} from '@/lib/auth';
+import {supabaseAdmin} from '@/lib/supabase';
 
 export default async function Standings({searchParams}:{searchParams:Promise<{projected?:string}>}){
  const params=await searchParams;
@@ -7,8 +8,10 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
  const {data:m}=await supabase.from('league_members').select('league_id').eq('user_id',user.id).limit(1).single();
  if(!m)return <main className="container"><h1>Standings</h1><p className="muted">You are not attached to a league.</p></main>;
 
- const {data:weeks}=await supabase.from('weeks').select('id,week_number,status').eq('league_id',m.league_id).order('week_number');
+ const {data:weeks}=await supabase.from('weeks').select('id,week_number,status,pick_deadline').eq('league_id',m.league_id).order('week_number');
  const {data:members}=await supabase.from('league_members').select('user_id,status').eq('league_id',m.league_id);
+ // Read raw picks server-side only to calculate the standings shown below.
+ const scoringClient=supabaseAdmin();
  const weekIds=(weeks??[]).map((w:any)=>w.id);
  const {data:liveScores}=weekIds.length?await supabase.from('weekly_scores').select('week_id,player_id,points').in('week_id',weekIds):{data:[] as any[]};
  const ids=(members??[]).map((x:any)=>x.user_id);
@@ -19,7 +22,7 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
  const {data:historicalScores}=historicalIds.length&&weekIds.length?await supabase.from('historical_week_scores').select('week_id,historical_player_id,points').in('historical_player_id',historicalIds).in('week_id',weekIds):{data:[] as any[]};
  const week5=(weeks??[]).find((w:any)=>w.week_number===5);
  const {data:week5Games}=week5?await supabase.from('games').select('game_number,away_team,home_team,favorite_team_name,favorite_points,underdog_points,status,away_score,home_score').eq('week_id',week5.id):{data:[] as any[]};
- const {data:week5HistoricalPicks}=week5&&historicalIds.length?await supabase.from('historical_picks').select('historical_player_id,game_number,selected_team_name').eq('week_id',week5.id).in('historical_player_id',historicalIds):{data:[] as any[]};
+ const {data:week5HistoricalPicks}=week5&&historicalIds.length?await scoringClient.from('historical_picks').select('historical_player_id,game_number,selected_team_name').eq('week_id',week5.id).in('historical_player_id',historicalIds):{data:[] as any[]};
 
  const importedWeek5Score=(hpId:number)=>{
   return (week5HistoricalPicks??[]).filter((p:any)=>p.historical_player_id===hpId).reduce((sum:number,p:any)=>{
@@ -32,11 +35,12 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
  };
 
  const rankingWeek=[...(weeks??[])].reverse().find((w:any)=>['OPEN','LOCKED','SCORING','COMPLETE'].includes(w.status));
- const projected=params.projected==='1'&&!!rankingWeek&&rankingWeek.status!=='COMPLETE';
+ const projectionAvailable=!!rankingWeek?.pick_deadline&&Date.now()>=new Date(rankingWeek.pick_deadline).getTime();
+ const projected=projectionAvailable&&params.projected==='1'&&!!rankingWeek&&rankingWeek.status!=='COMPLETE';
  const {data:projectionGames,error:gamesError}=projected?await supabase.from('games').select('id,game_number,away_team_id,home_team_id,away_team,home_team,favorite_team_name,favorite_points,underdog_points,status,away_score,home_score,commissioner_override,override_winner_team_id').eq('week_id',rankingWeek!.id):{data:[],error:null};
  const projectionGameIds=(projectionGames??[]).map((g:any)=>g.id);
- const {data:projectionPicks,error:picksError}=projected&&projectionGameIds.length?await supabase.from('picks').select('player_id,game_id,selected_team_id').in('game_id',projectionGameIds):{data:[],error:null};
- const {data:projectionHistoricalPicks,error:historicalPicksError}=projected&&historicalIds.length?await supabase.from('historical_picks').select('historical_player_id,game_number,selected_team_name').eq('week_id',rankingWeek!.id).in('historical_player_id',historicalIds):{data:[],error:null};
+ const {data:projectionPicks,error:picksError}=projected&&projectionGameIds.length?await scoringClient.from('picks').select('player_id,game_id,selected_team_id').eq('week_id',rankingWeek!.id).in('game_id',projectionGameIds):{data:[],error:null};
+ const {data:projectionHistoricalPicks,error:historicalPicksError}=projected&&historicalIds.length?await scoringClient.from('historical_picks').select('historical_player_id,game_number,selected_team_name').eq('week_id',rankingWeek!.id).in('historical_player_id',historicalIds):{data:[],error:null};
  const projectionReady=projected&&!gamesError&&!picksError&&!historicalPicksError&&projectionGameIds.length>0;
  const projectedPoints=(hp:any)=>(projectionGames??[]).reduce((sum:number,g:any)=>{
   if(!['FINAL','IN_PROGRESS'].includes(g.status))return sum;
@@ -123,7 +127,7 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
 
 
  return <main className="container"><h1>Standings</h1><p className="muted">Season totals and weekly scores.</p>
- {rankingWeek&&rankingWeek.status!=='COMPLETE'&&<div className="card" style={{marginBottom:16}}>
+ {projectionAvailable&&rankingWeek&&rankingWeek.status!=='COMPLETE'&&<div className="card" style={{marginBottom:16}}>
   <form action="/standings" method="get">
    <button type="submit" role="switch" aria-checked={projected} name="projected" value={projected?'0':'1'} aria-describedby="projection-note">
     Show projected standings: {projected?'ON':'OFF'}

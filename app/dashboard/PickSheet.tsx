@@ -1,7 +1,9 @@
 'use client';
 import {useEffect,useState} from 'react';
+import {useRouter} from 'next/navigation';
 type Game={id:number;game_number:number;away_team:string;away_team_id:string;home_team:string;home_team_id:string;favorite_team_id:string|null;favorite_team_name:string|null;favorite_points:number;underdog_points:number;kickoff_at:string|null;network:string|null;status:string};
 export default function PickSheet({weekId,games,initial,deadline,weekStatus,lateException}:{weekId:number;games:Game[];initial:Record<string,string>;deadline:string|null;weekStatus:string;lateException:string|null}){
+ const router=useRouter();
  const [picks,setPicks]=useState<Record<string,string>>(initial),[busy,setBusy]=useState(false),[msg,setMsg]=useState('');
  const [now,setNow]=useState(Date.now()),[submitted,setSubmitted]=useState(false);
  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return ()=>clearInterval(timer);},[]);
@@ -19,7 +21,7 @@ export default function PickSheet({weekId,games,initial,deadline,weekStatus,late
    const selected=late?Object.fromEntries(available.filter(g=>g.kickoff_at&&Date.now()<new Date(g.kickoff_at).getTime()).map(g=>[g.id,picks[g.id]])):picks;
    const r=await fetch(`/api/weeks/${weekId}/picks`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({picks:selected})});
    const j=await r.json();
-   if(r.ok&&j.late){setSubmitted(true);setMsg('Picks submitted. Your picks are now locked.');}
+   if(r.ok&&j.late){setSubmitted(true);setMsg('Picks submitted. Your picks are now locked.');router.refresh();}
    else setMsg(r.ok?'Picks saved. You can edit them until the deadline.':j.error||'Could not save picks.');
   }catch{setMsg('Could not save picks. Please try again.');}finally{setBusy(false);}
  }
