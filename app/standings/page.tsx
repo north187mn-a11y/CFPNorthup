@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {requireUser} from '@/lib/auth';
 import {supabaseAdmin} from '@/lib/supabase';
+import LiveRefresh from '@/app/scoreboard/LiveRefresh';
 
 export default async function Standings({searchParams}:{searchParams:Promise<{projected?:string}>}){
  const params=await searchParams;
@@ -127,6 +128,7 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
 
 
  return <main className="container"><h1>Standings</h1><p className="muted">Season totals and weekly scores.</p>
+ {projectionAvailable&&rankingWeek&&rankingWeek.status!=='COMPLETE'&&<LiveRefresh weekId={rankingWeek.id}/>}
  {projectionAvailable&&rankingWeek&&rankingWeek.status!=='COMPLETE'&&<div className="card" style={{marginBottom:16}}>
   <form action="/standings" method="get">
    <button type="submit" role="switch" aria-checked={projected} name="projected" value={projected?'0':'1'} aria-describedby="projection-note">
@@ -136,7 +138,7 @@ export default async function Standings({searchParams}:{searchParams:Promise<{pr
   <p id="projection-note" className="muted">{projectionReady?'UNOFFICIAL — ':''}Treats current game leaders as winners. Tied and unstarted games are unscored. Official results and eliminations are unchanged.</p>
   {projected&&!projectionReady&&<p role="alert">Projected scores could not be loaded. Showing official standings. Please refresh to try again.</p>}
  </div>}
- {projectionReady&&<p role="status"><strong>Unofficial projected standings — Week {rankingWeek!.week_number}</strong>. Weekly scores, YTD totals, rankings, and the cut line below assume current leaders win. Refresh for updated game scores.</p>}
+ {projectionReady&&<p role="status"><strong>Unofficial projected standings — Week {rankingWeek!.week_number}</strong>. Weekly scores, YTD totals, rankings, and the cut line below assume current leaders win.</p>}
 
  {rankingWeek&&rankingWeek.week_number>=8&&(activeStandings.length>0||consolationStandings.length>0)&&<div className="card" style={{overflowX:'auto',marginBottom:16}}>
   <h2>Week {rankingWeek.week_number} Standings</h2>
